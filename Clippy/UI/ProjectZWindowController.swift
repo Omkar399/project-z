@@ -36,9 +36,8 @@ class ProjectZWindowController: ObservableObject {
         DispatchQueue.main.async {
             self.currentState = state
             let displayMessage = message ?? state.defaultMessage
-            let gifName = state.gifFileName
             
-            print("📎 [ProjectZWindowController] Setting state to \(state) with GIF: \(gifName)")
+            print("📎 [ProjectZWindowController] Setting state to \(state)")
             
             // Create window if needed
             if self.window == nil {
@@ -49,22 +48,11 @@ class ProjectZWindowController: ObservableObject {
             // Update the view content with new state - VERTICAL LAYOUT (ProjectZ on top, bubble below)
             self.hostingController?.rootView = AnyView(
                 VStack(spacing: 8) {
-                    // ProjectZ Visual
+                    // ProjectZ Visual (Siri Orb)
                     ZStack {
-                        // Base GIF (no background - transparent, allows drag-through)
-                        ProjectZGifPlayer(gifName: gifName)
-                            .id(gifName)
-                            .frame(width: 80, height: 60)
+                        SiriOrbView(state: state)
+                            .frame(width: 80, height: 80)
                             .allowsHitTesting(false) // Allow mouse events to pass through for window dragging
-                        
-                        // Incognito overlay (sunglasses or mask)
-                        if state == .incognito {
-                            Image(systemName: "sunglasses.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.black)
-                                .offset(y: -5)
-                                .shadow(radius: 2)
-                        }
                     }
                     
                     // Message bubble (TRANSPARENT) - below ProjectZ
@@ -443,39 +431,5 @@ class ProjectZWindowController: ObservableObject {
     deinit {
         stopEscapeKeyMonitoring()
         window?.close()
-    }
-}
-
-// MARK: - ProjectZ GIF Player
-
-/// Custom NSImageView that ignores mouse events (allows window dragging)
-class DraggableImageView: NSImageView {
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        return nil // Ignore all mouse events - pass through to window
-    }
-}
-
-struct ProjectZGifPlayer: NSViewRepresentable {
-    let gifName: String
-    
-    func makeNSView(context: Context) -> DraggableImageView {
-        let imageView = DraggableImageView()
-        imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.animates = true
-        return imageView
-    }
-    
-    func updateNSView(_ nsView: DraggableImageView, context: Context) {
-        if let url = Bundle.main.url(forResource: gifName, withExtension: "gif") {
-            if let image = NSImage(contentsOf: url) {
-                nsView.image = image
-                nsView.animates = true
-            }
-        } else if let url = Bundle.main.url(forResource: "ProjectZGifs/\(gifName)", withExtension: "gif") {
-            if let image = NSImage(contentsOf: url) {
-                nsView.image = image
-                nsView.animates = true
-            }
-        }
     }
 }

@@ -93,7 +93,9 @@ class AppDependencyContainer: ObservableObject {
         // Inject dependencies into GuardianService and start monitoring
         guardianService.setDependencies(
             contextEngine: contextEngine,
-            spotlightController: spotlightController
+            spotlightController: spotlightController,
+            grokService: grokService,
+            mem0Service: mem0Service
         )
         guardianService.startMonitoring()
         

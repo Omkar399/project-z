@@ -228,6 +228,22 @@ class SpotlightWindowController: NSWindowController {
         show()
     }
     
+    func showGoalWarning(goal: String, currentContext: String, alignment: Int) {
+        print("🚨 [SpotlightController] Showing goal warning")
+        
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ShowGoalWarning"),
+            object: nil,
+            userInfo: [
+                "goal": goal,
+                "context": currentContext,
+                "alignment": alignment
+            ]
+        )
+        
+        show()
+    }
+    
     func hide() {
         guard panel.isVisible else { return }
         

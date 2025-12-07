@@ -13,15 +13,29 @@ class GuardianService: ObservableObject {
     @Published var guardedContacts: [GuardedContact] = []
     @Published var isEnabled: Bool = true
     
+    // Debug Mode
+    @Published var isDebugMode: Bool = false
+    @Published var lastAlignmentScore: Double = 0.0
+    @Published var lastContext: String = ""
+    
+    // Goal Alignment
+    @Published var currentGoal: String?
+    private var goalEmbedding: [Double]?
+    private let driftThreshold: Double = 0.4 // Adjust based on testing
+    
     private var contextEngine: ContextEngine?
     private var spotlightController: SpotlightWindowController?
+    private var grokService: GrokService?
+    private var mem0Service: Mem0Service?
+    
     private var appActivationObserver: NSObjectProtocol?
     private var appLaunchObserver: NSObjectProtocol?
     private var continuousMonitoringTimer: Timer?
     private var currentMonitoredApp: String?
     private var lastWarnedContact: String?
+    private var lastDriftWarningTime: Date?
     
-    // Supported apps for monitoring
+    // Supported apps for monitoring (contacts)
     private let supportedApps = [
         "Messages",
         "WhatsApp",
@@ -47,9 +61,54 @@ class GuardianService: ObservableObject {
         loadGuardedContacts()
     }
     
-    func setDependencies(contextEngine: ContextEngine, spotlightController: SpotlightWindowController) {
+    func setDependencies(contextEngine: ContextEngine, spotlightController: SpotlightWindowController, grokService: GrokService, mem0Service: Mem0Service) {
         self.contextEngine = contextEngine
         self.spotlightController = spotlightController
+        self.grokService = grokService
+        self.mem0Service = mem0Service
+    }
+    
+    // MARK: - Goal Setting
+    
+    func setGoal(_ text: String) {
+        guard !text.isEmpty else { return }
+        
+        print("🎯 [Guardian] Setting goal: \"\(text)\"")
+        currentGoal = text
+        
+        // 1. Store in Mem0
+        Task {
+            let messages = [
+                (role: "user", content: "I am setting a current focus goal: \(text)"),
+                (role: "assistant", content: "Understood. I will help you stay focused on: \(text)")
+            ]
+            _ = await mem0Service?.addMemory(messages: messages)
+        }
+        
+        // 2. Generate Embedding
+        Task {
+            if let embedding = await grokService?.getEmbedding(text: text) {
+                await MainActor.run {
+                    self.goalEmbedding = embedding
+                    print("🎯 [Guardian] Goal embedding generated (dim: \(embedding.count))")
+                    
+                    // Start broad monitoring if not already
+                    self.startMonitoring()
+                }
+            } else {
+                print("⚠️ [Guardian] Failed to generate goal embedding")
+            }
+        }
+    }
+    
+    func clearGoal() {
+        print("🎯 [Guardian] Clearing goal")
+        currentGoal = nil
+        goalEmbedding = nil
+        lastDriftWarningTime = nil
+        
+        // If no guarded contacts, we might want to stop monitoring, 
+        // but let's leave that to the standard logic
     }
     
     // MARK: - Monitoring
@@ -60,39 +119,43 @@ class GuardianService: ObservableObject {
             return
         }
         
-        print("🛡️ [Guardian] Starting monitoring for \(guardedContacts.count) contacts")
+        print("🛡️ [Guardian] Starting monitoring (Contacts: \(guardedContacts.count), Goal Active: \(currentGoal != nil))")
         
         // Listen for app activation events (when switching to an app)
-        appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            
-            if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-               let appName = app.localizedName {
-                self.handleAppActivated(appName: appName)
+        if appActivationObserver == nil {
+            appActivationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didActivateApplicationNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let self = self else { return }
+                
+                if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                   let appName = app.localizedName {
+                    self.handleAppActivated(appName: appName)
+                }
             }
         }
         
         // Listen for app launch events (when opening an app)
-        appLaunchObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didLaunchApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self else { return }
-            
-            if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-               let appName = app.localizedName {
-                print("🛡️ [Guardian] \(appName) launched, will check shortly...")
-                // Wait longer for app to fully load and window to appear
-                self.handleAppActivated(appName: appName, delay: 1.5)
+        if appLaunchObserver == nil {
+            appLaunchObserver = NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.didLaunchApplicationNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let self = self else { return }
+                
+                if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                   let appName = app.localizedName {
+                    print("🛡️ [Guardian] \(appName) launched, will check shortly...")
+                    // Wait longer for app to fully load and window to appear
+                    self.handleAppActivated(appName: appName, delay: 1.5)
+                }
             }
         }
         
-        print("🛡️ [Guardian] Monitoring active (activation + launch)")
+        print("🛡️ [Guardian] Monitoring active")
         
         // Check if any monitored apps are already running
         checkAlreadyRunningApps()
@@ -129,25 +192,25 @@ class GuardianService: ObservableObject {
             return
         }
         
-        // If switching to a non-monitored app, stop continuous monitoring
-        guard supportedApps.contains(appName) else {
+        // Check if we need to monitor this app
+        let isSupportedApp = supportedApps.contains(appName)
+        let isGoalActive = currentGoal != nil
+        
+        // If neither goal monitoring nor contact monitoring applies, stop.
+        // Actually, if goal is active, we monitor ALL apps to detect drift (e.g. Twitter, YouTube)
+        if !isSupportedApp && !isGoalActive {
             stopContinuousMonitoring()
             return
         }
         
-        guard !guardedContacts.isEmpty else {
-            stopContinuousMonitoring()
-            return
-        }
-        
-        print("🛡️ [Guardian] \(appName) activated/launched, starting continuous monitoring...")
+        print("🛡️ [Guardian] \(appName) activated/launched, checking context...")
         
         // Start continuous monitoring for this app
         startContinuousMonitoring(for: appName)
         
         // Check immediately after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            self?.checkCurrentContact(in: appName)
+            self?.checkContext(in: appName)
         }
     }
     
@@ -157,14 +220,17 @@ class GuardianService: ObservableObject {
         
         currentMonitoredApp = appName
         
-        // Check every 0.3 seconds while the app is frontmost
-        continuousMonitoringTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
+        // Check interval: 0.3s for contacts, maybe slower for goals (e.g. 2.0s) to save API calls/battery?
+        // But for "Judge-Melting" demo, 0.3s is impressive. Let's stick to 1.0s for goal to be safe on rate limits.
+        let interval = (currentGoal != nil) ? 2.0 : 0.5
+        
+        continuousMonitoringTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             
             // Verify the app is still frontmost
             if let frontApp = NSWorkspace.shared.frontmostApplication?.localizedName,
                frontApp == appName {
-                self.checkCurrentContact(in: appName)
+                self.checkContext(in: appName)
             } else {
                 // App is no longer frontmost, stop monitoring
                 print("🛡️ [Guardian] \(appName) no longer frontmost, stopping continuous monitoring")
@@ -172,7 +238,7 @@ class GuardianService: ObservableObject {
             }
         }
         
-        print("🛡️ [Guardian] Continuous monitoring started for \(appName) (checking every 0.3s)")
+        print("🛡️ [Guardian] Continuous monitoring started for \(appName) (interval: \(interval)s)")
     }
     
     private func stopContinuousMonitoring() {
@@ -184,26 +250,32 @@ class GuardianService: ObservableObject {
         currentMonitoredApp = nil
     }
     
-    private func checkCurrentContact(in appName: String) {
-        guard let contextEngine = contextEngine else {
-            print("⚠️ [Guardian] ContextEngine not available")
-            return
-        }
+    private func checkContext(in appName: String) {
+        guard let contextEngine = contextEngine else { return }
         
-        // Use ContextEngine to get current window/conversation context
+        // 1. Get Context
         let context = contextEngine.getCurrentContext()
         
+        // 2. Check Guarded Contacts (if supported app)
+        if supportedApps.contains(appName) {
+            checkContactContext(context, appName: appName)
+        }
+        
+        // 3. Check Goal Alignment (if goal set)
+        if currentGoal != nil {
+            checkGoalAlignment(context, appName: appName)
+        }
+    }
+    
+    private func checkContactContext(_ context: ContextEngine.AppContext, appName: String) {
         // Extract potential contact name from window title or UI element
         let potentialContact = extractContactName(from: context, appName: appName)
         
         guard let contactName = potentialContact else {
-            print("🛡️ [Guardian] No contact detected in \(appName)")
             // Clear last warned contact if no contact is visible
             lastWarnedContact = nil
             return
         }
-        
-        print("🛡️ [Guardian] Current contact: \(contactName)")
         
         // Check if this contact is guarded
         if let guardedContact = findGuardedContact(matching: contactName) {
@@ -212,13 +284,75 @@ class GuardianService: ObservableObject {
                 print("🚨 [Guardian] GUARDED CONTACT DETECTED: \(guardedContact.name)")
                 lastWarnedContact = contactName
                 triggerIntervention(for: guardedContact, in: appName)
-            } else {
-                print("🛡️ [Guardian] Already warned about \(contactName), skipping")
             }
         } else {
             // Not a guarded contact, clear last warned
             lastWarnedContact = nil
         }
+    }
+    
+    private func checkGoalAlignment(_ context: ContextEngine.AppContext, appName: String) {
+        guard let goalEmbedding = goalEmbedding, let grokService = grokService else { return }
+        
+        // Rate limit checks (e.g., don't check every single frame if we just warned)
+        if let lastWarn = lastDriftWarningTime, Date().timeIntervalSince(lastWarn) < 600 { // 10 min snooze
+            return
+        }
+        
+        // Build rich context string for embedding
+        var contextString = "App: \(appName)"
+        if let title = context.windowTitle { contextString += " | Window: \(title)" }
+        // We might want more text from accessibility if available, but let's start with title/app
+        
+        // Skip check if context is too sparse
+        if contextString.count < 10 { return }
+        
+        Task {
+            // Generate embedding for current context
+            if let currentEmbedding = await grokService.getEmbedding(text: contextString) {
+                let similarity = cosineSimilarity(goalEmbedding, currentEmbedding)
+                
+                await MainActor.run {
+                    self.lastAlignmentScore = similarity
+                    self.lastContext = contextString
+                    if self.isDebugMode {
+                         print("📉 [Guardian Debug] Alignment: \(String(format: "%.2f", similarity * 100))% | Context: \(contextString)")
+                    } else {
+                        print("📉 [Guardian] Goal Alignment: \(String(format: "%.2f", similarity * 100))% | Context: \(contextString)")
+                    }
+                }
+                
+                if similarity < driftThreshold {
+                    await MainActor.run {
+                        // Double check we haven't warned recently inside the task
+                        if let lastWarn = self.lastDriftWarningTime, Date().timeIntervalSince(lastWarn) < 600 { return }
+                        
+                        print("🚨 [Guardian] DRIFT DETECTED! Alignment: \(similarity)")
+                        self.triggerGoalWarning(similarity: similarity, currentContext: contextString)
+                        self.lastDriftWarningTime = Date()
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Vector Math
+    
+    private func cosineSimilarity(_ a: [Double], _ b: [Double]) -> Double {
+        guard a.count == b.count, a.count > 0 else { return 0.0 }
+        
+        var dotProduct = 0.0
+        var normA = 0.0
+        var normB = 0.0
+        
+        for i in 0..<a.count {
+            dotProduct += a[i] * b[i]
+            normA += a[i] * a[i]
+            normB += b[i] * b[i]
+        }
+        
+        if normA == 0 || normB == 0 { return 0.0 }
+        return dotProduct / (sqrt(normA) * sqrt(normB))
     }
     
     private func extractContactName(from context: ContextEngine.AppContext, appName: String) -> String? {
@@ -251,6 +385,20 @@ class GuardianService: ObservableObject {
     }
     
     // MARK: - Intervention
+    
+    private func triggerGoalWarning(similarity: Double, currentContext: String) {
+        guard let goal = currentGoal else { return }
+        
+        let percentage = Int(similarity * 100)
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.spotlightController?.showGoalWarning(
+                goal: goal,
+                currentContext: currentContext,
+                alignment: percentage
+            )
+        }
+    }
     
     private func triggerIntervention(for contact: GuardedContact, in appName: String) {
         print("🚨 [Guardian] Triggering intervention for \(contact.name)")
@@ -309,6 +457,20 @@ class GuardianService: ObservableObject {
     func resetLastWarnedContact() {
         lastWarnedContact = nil
         print("🛡️ [Guardian] Reset last warned contact - can warn again")
+    }
+    
+    func snoozeGoalWarning() {
+        print("⏳ [Guardian] Snoozing goal warning for 10 minutes")
+        lastDriftWarningTime = Date() // Reset to now, timer logic handles the check
+    }
+    
+    func restoreFocus() {
+        // Logic to switch back to productive app could go here
+        // For now, just acknowledged
+        print("🔁 [Guardian] Focus restored user action")
+        // Maybe reset snooze to allow immediate warning if they drift again instantly?
+        // Or keep a grace period? Let's keep grace period small.
+        lastDriftWarningTime = Date().addingTimeInterval(-540) // 9 mins ago, so warns in 1 min if still drifting
     }
     
     // MARK: - Persistence

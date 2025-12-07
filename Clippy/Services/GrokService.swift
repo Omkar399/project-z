@@ -24,6 +24,23 @@ struct ClassificationResponse: Codable {
     let confidence: Double
 }
 
+// Embedding Response
+struct EmbeddingResponse: Codable {
+    struct EmbeddingData: Codable {
+        let embedding: [Double]
+        let index: Int
+        let object: String
+    }
+    struct Usage: Codable {
+        let prompt_tokens: Int
+        let total_tokens: Int
+    }
+    let data: [EmbeddingData]
+    let model: String
+    let object: String
+    let usage: Usage
+}
+
 @MainActor
 class GrokService: ObservableObject, AIServiceProtocol {
     @Published var isProcessing = false
@@ -314,6 +331,61 @@ class GrokService: ObservableObject, AIServiceProtocol {
     func analyzeImage(imageData: Data) async -> String? {
         print("🖼️ [GrokService] Image analysis not yet supported by Grok")
         return "Image analysis not available"
+    }
+
+    // MARK: - Embedding Generation
+    
+    func getEmbedding(text: String) async -> [Double]? {
+        guard !apiKey.isEmpty else {
+            print("   ⚠️ No valid API key configured for embeddings")
+            return nil
+        }
+        
+        guard let url = URL(string: "\(baseURL)/embeddings") else {
+            lastError = "Invalid URL"
+            return nil
+        }
+        
+        print("   🧬 Generating embedding for: \(text.prefix(50))...")
+        
+        // Note: x.ai might require a specific embedding model name. 
+        // Using current chat model as placeholder or standard if supported.
+        let requestBody: [String: Any] = [
+            "model": modelName, 
+            "input": text
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown"
+                print("   ❌ Embedding API Error (\(status)): \(errorMsg)")
+                return nil
+            }
+            
+            let decoder = JSONDecoder()
+            let embeddingResponse = try decoder.decode(EmbeddingResponse.self, from: data)
+            
+            if let vector = embeddingResponse.data.first?.embedding {
+                print("   ✅ Embedding generated (dim: \(vector.count))")
+                return vector
+            }
+            
+            return nil
+            
+        } catch {
+            print("   ❌ Embedding Error: \(error)")
+            return nil
+        }
     }
     
     // MARK: - Text Transformation

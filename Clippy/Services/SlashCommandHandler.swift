@@ -12,7 +12,7 @@ class SlashCommandHandler {
         let name: String
         let description: String
         let aliases: [String]
-        let action: () -> CommandResult
+        let action: (_ args: String) -> CommandResult
     }
     
     struct CommandResult {
@@ -46,7 +46,7 @@ class SlashCommandHandler {
                 name: "obliviate",
                 description: "Clear session memory (Mem0 memories persist)",
                 aliases: ["clear", "forget"]
-            ) { [weak self] in
+            ) { [weak self] _ in
                 self?.conversationManager?.clearHistory(reason: "user command")
                 return CommandResult(
                     success: true,
@@ -59,7 +59,7 @@ class SlashCommandHandler {
                 name: "memories",
                 description: "Show what ProjectZ remembers about you",
                 aliases: ["memory", "remember"]
-            ) { [weak self] in
+            ) { [weak self] _ in
                 guard let self = self else {
                     return CommandResult(success: false, message: "Error: Handler not available", shouldClearInput: false)
                 }
@@ -104,7 +104,7 @@ class SlashCommandHandler {
                 name: "help",
                 description: "Show all available commands",
                 aliases: ["?", "commands"]
-            ) { [weak self] in
+            ) { [weak self] _ in
                 guard let self = self else {
                     return CommandResult(success: false, message: "Error", shouldClearInput: false)
                 }
@@ -129,7 +129,7 @@ class SlashCommandHandler {
                 name: "guardian",
                 description: "Toggle Guardian mode on/off",
                 aliases: ["guard", "protect"]
-            ) { [weak self] in
+            ) { [weak self] _ in
                 guard let guardian = self?.guardianService else {
                     return CommandResult(
                         success: false,
@@ -153,6 +153,36 @@ class SlashCommandHandler {
                     message: "\(emoji) Guardian mode \(status)",
                     shouldClearInput: true
                 )
+            },
+            
+            Command(
+                name: "goal",
+                description: "Set a focus goal (e.g. /goal Finish the deck)",
+                aliases: ["focus"]
+            ) { [weak self] args in
+                guard let guardian = self?.guardianService else {
+                    return CommandResult(
+                        success: false,
+                        message: "⚠️ Guardian service not available",
+                        shouldClearInput: false
+                    )
+                }
+                
+                if args.isEmpty {
+                    guardian.clearGoal()
+                    return CommandResult(
+                        success: true,
+                        message: "🎯 Goal cleared. You are free to drift.",
+                        shouldClearInput: true
+                    )
+                } else {
+                    guardian.setGoal(args)
+                    return CommandResult(
+                        success: true,
+                        message: "🎯 Goal Set: \"\(args)\"\nI'm watching for drift now.",
+                        shouldClearInput: true
+                    )
+                }
             }
         ]
     }
@@ -167,10 +197,11 @@ class SlashCommandHandler {
     /// Execute a slash command
     func execute(_ input: String) -> CommandResult {
         // Remove the leading "/"
-        let commandString = String(input.dropFirst()).trimmingCharacters(in: .whitespaces).lowercased()
+        let cleanInput = String(input.dropFirst()).trimmingCharacters(in: .whitespaces)
         
-        // Empty command
-        if commandString.isEmpty {
+        // Split command and arguments
+        let components = cleanInput.split(separator: " ", maxSplits: 1)
+        guard let first = components.first else {
             return CommandResult(
                 success: false,
                 message: "Type / to see available commands",
@@ -178,17 +209,20 @@ class SlashCommandHandler {
             )
         }
         
+        let commandName = String(first).lowercased()
+        let args = components.count > 1 ? String(components[1]) : ""
+        
         // Find matching command
         for command in commands {
-            if command.name == commandString || command.aliases.contains(commandString) {
-                return command.action()
+            if command.name == commandName || command.aliases.contains(commandName) {
+                return command.action(args)
             }
         }
         
         // Unknown command
         return CommandResult(
             success: false,
-            message: "❓ Unknown command: /\(commandString)\nType /help to see available commands",
+            message: "❓ Unknown command: /\(commandName)\nType /help to see available commands",
             shouldClearInput: false
         )
     }

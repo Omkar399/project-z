@@ -40,22 +40,6 @@ enum ProjectZAnimationState {
     case error     // An error occurred (API failure, etc.)
     case incognito // Privacy mode is active
     
-    /// The GIF file name for this animation state
-    var gifFileName: String {
-        switch self {
-        case .idle, .incognito: // Use idle animation base for incognito
-            return "clippy-idle"
-        case .writing:
-            return "clippy-writing"
-        case .thinking:
-            return "clippy-thinking"
-        case .done:
-            return "clippy-done"
-        case .error:
-            return "clippy-idle" // Use idle animation for errors
-        }
-    }
-    
     /// Default message to display for this state
     var defaultMessage: String {
         switch self {
