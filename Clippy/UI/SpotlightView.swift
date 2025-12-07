@@ -483,8 +483,20 @@ struct SpotlightView: View {
         
         // Mem0
         if container.mem0Service.isAvailable {
-            _ = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
-            log("🧠 Mem0 search complete")
+            let memories = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
+            log("🧠 Mem0 found \(memories.count) memories")
+            
+            let memoryItems = memories.map { memory in
+                RAGContextItem(
+                    content: memory.memory,
+                    tags: ["memory"],
+                    type: "memory",
+                    timestamp: Date(),
+                    title: "Long-term Memory"
+                )
+            }
+            
+            clipboardContext.append(contentsOf: memoryItems)
         }
         
         // Grok Generation
