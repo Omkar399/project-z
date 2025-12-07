@@ -13,7 +13,7 @@ class ClipboardMonitor: ObservableObject {
     private var lastChangeCount: Int = 0
     private var repository: ClipboardRepository?
     private var contextEngine: ContextEngine?
-    private var geminiService: GeminiService?
+    private var grokService: GrokService?
     private var localAIService: LocalAIService?
     
     // MARK: - Computed Properties (delegated to ContextEngine)
@@ -34,12 +34,12 @@ class ClipboardMonitor: ObservableObject {
     func startMonitoring(
         repository: ClipboardRepository,
         contextEngine: ContextEngine,
-        geminiService: GeminiService? = nil,
+        grokService: GrokService? = nil,
         localAIService: LocalAIService? = nil
     ) {
         self.repository = repository
         self.contextEngine = contextEngine
-        self.geminiService = geminiService
+        self.grokService = grokService
         self.localAIService = localAIService
         
         // Initialize lastChangeCount to avoid processing existing content
@@ -172,8 +172,8 @@ class ClipboardMonitor: ObservableObject {
                         }
                     }
                 }
-            } else if let gemini = await self.geminiService {
-                description = await gemini.analyzeImage(imageData: pngData) ?? "[Image]"
+            } else if let grok = await self.grokService {
+                description = await grok.analyzeImage(imageData: pngData) ?? "[Image]"
             }
             
             await MainActor.run {
@@ -248,9 +248,9 @@ class ClipboardMonitor: ObservableObject {
                 tags = await Task { @MainActor in
                     await localService.generateTags(content: content, appName: appName, context: nil)
                 }.value
-            } else if let gemini = await self.geminiService {
+            } else if let grok = await self.grokService {
                 tags = await Task { @MainActor in
-                    await gemini.generateTags(content: content, appName: appName, context: nil)
+                    await grok.generateTags(content: content, appName: appName, context: nil)
                 }.value
             }
             

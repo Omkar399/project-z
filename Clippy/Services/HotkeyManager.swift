@@ -12,12 +12,14 @@ class HotkeyManager: ObservableObject {
     private var onVisionTrigger: (() -> Void)?
     private var onTextCaptureTrigger: (() -> Void)?
     private var onVoiceCaptureTrigger: (() -> Void)?
+    private var onSpotlightTrigger: (() -> Void)?
     
-    func startListening(onTrigger: @escaping () -> Void, onVisionTrigger: @escaping () -> Void, onTextCaptureTrigger: @escaping () -> Void, onVoiceCaptureTrigger: @escaping () -> Void) {
+    func startListening(onTrigger: @escaping () -> Void, onVisionTrigger: @escaping () -> Void, onTextCaptureTrigger: @escaping () -> Void, onVoiceCaptureTrigger: @escaping () -> Void, onSpotlightTrigger: @escaping () -> Void) {
         self.onTrigger = onTrigger
         self.onVisionTrigger = onVisionTrigger
         self.onTextCaptureTrigger = onTextCaptureTrigger
         self.onVoiceCaptureTrigger = onVoiceCaptureTrigger
+        self.onSpotlightTrigger = onSpotlightTrigger
         
         let eventMask = (1 << CGEventType.keyDown.rawValue)
         
@@ -54,6 +56,19 @@ class HotkeyManager: ObservableObject {
                     print("⌨️ [HotkeyManager] Option+V detected!")
                     DispatchQueue.main.async {
                         manager.onVisionTrigger?()
+                    }
+                    return nil // Consume event
+                }
+                
+                // Check for Cmd+Shift+K (Spotlight mode)
+                let hasCmd = event.flags.contains(.maskCommand)
+                let hasShift = event.flags.contains(.maskShift)
+                let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+                
+                if hasCmd && hasShift && keyCode == 40 { // 40 = K
+                    print("✨ [HotkeyManager] Cmd+Shift+K detected (Spotlight)!")
+                    DispatchQueue.main.async {
+                        manager.onSpotlightTrigger?()
                     }
                     return nil // Consume event
                 }

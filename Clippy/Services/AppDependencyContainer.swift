@@ -11,11 +11,13 @@ class AppDependencyContainer: ObservableObject {
     let hotkeyManager: HotkeyManager
     let textCaptureService: TextCaptureService
     let clippyController: ClippyWindowController
+    var spotlightController: SpotlightWindowController!
     
     // AI Services
     let localAIService: LocalAIService
-    let geminiService: GeminiService
+    let grokService: GrokService
     let audioRecorder: AudioRecorder
+    let calendarService: CalendarService
     
     /// Currently selected AI service (persisted in UserDefaults)
     @Published var selectedAIServiceType: AIServiceType = .local {
@@ -28,7 +30,7 @@ class AppDependencyContainer: ObservableObject {
     var aiService: any AIServiceProtocol {
         switch selectedAIServiceType {
         case .local: return localAIService
-        case .gemini: return geminiService
+        case .grok: return grokService
         }
     }
     
@@ -46,13 +48,20 @@ class AppDependencyContainer: ObservableObject {
         self.clippyController = ClippyWindowController()
         self.audioRecorder = AudioRecorder()
         self.localAIService = LocalAIService()
-        self.geminiService = GeminiService(apiKey: UserDefaults.standard.string(forKey: "Gemini_API_Key") ?? "")
+        self.grokService = GrokService(apiKey: UserDefaults.standard.string(forKey: "Grok_API_Key") ?? "")
+        self.calendarService = CalendarService()
         self.textCaptureService = TextCaptureService()
         
         // 2. Initialize Dependent Services
         self.clipboardMonitor = ClipboardMonitor()
         
         print("✅ [AppDependencyContainer] Services initialized.")
+        
+        // 3. Initialize services that need self reference (after all stored properties are set)
+        self.spotlightController = SpotlightWindowController(container: self)
+        
+        // 4. Wire up calendar service to Grok
+        self.grokService.setCalendarService(calendarService)
     }
     
     func inject(modelContext: ModelContext) {
@@ -66,7 +75,7 @@ class AppDependencyContainer: ObservableObject {
             clipboardMonitor.startMonitoring(
                 repository: repo,
                 contextEngine: contextEngine,
-                geminiService: geminiService,
+                grokService: grokService,
                 localAIService: localAIService
             )
         }

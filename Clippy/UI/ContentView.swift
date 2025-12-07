@@ -2,13 +2,13 @@ import SwiftUI
 import SwiftData
 
 enum AIServiceType: String, CaseIterable {
-    case gemini = "Gemini"
+    case grok = "Grok"
     case local = "Local AI"
     
     var description: String {
         switch self {
-        case .gemini:
-            return "Gemini 2.5 Flash (Cloud)"
+        case .grok:
+            return "Grok (xAI Agentic)"
         case .local:
             return "Local Qwen3-4b (On-device)"
         }
@@ -27,9 +27,7 @@ struct ContentView: View {
     private var textCaptureService: TextCaptureService { container.textCaptureService }
     private var clippyController: ClippyWindowController { container.clippyController }
     private var localAIService: LocalAIService { container.localAIService }
-    // GeminiService is currently a @State in ContentView, but moved to container. 
-    // We'll use the container one, but we need to verify if we need to observe it.
-    private var geminiService: GeminiService { container.geminiService }
+    private var grokService: GrokService { container.grokService }
     private var audioRecorder: AudioRecorder { container.audioRecorder }
 
     // Constants/State
@@ -84,8 +82,8 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView(
                 apiKey: Binding(
-                    get: { getStoredAPIKey() },
-                    set: { saveAPIKey($0) }
+                    get: { getStoredAPIKey("Grok_API_Key") },
+                    set: { saveAPIKey($0, key: "Grok_API_Key") }
                 ),
                 elevenLabsKey: Binding(
                     get: { UserDefaults.standard.string(forKey: "ElevenLabs_API_Key") ?? "" },
@@ -129,9 +127,9 @@ struct ContentView: View {
         }
         
         // Load stored API key
-        let storedKey = getStoredAPIKey()
+        let storedKey = getStoredAPIKey("Grok_API_Key")
         if !storedKey.isEmpty {
-            geminiService.updateApiKey(storedKey)
+            grokService.updateApiKey(storedKey)
         }
         
         // Initialize ElevenLabs Service
@@ -155,13 +153,18 @@ struct ContentView: View {
             onTrigger: { handleHotkeyTrigger() },
             onVisionTrigger: { handleVisionHotkeyTrigger() },
             onTextCaptureTrigger: { handleTextCaptureTrigger() },
-            onVoiceCaptureTrigger: { toggleVoiceRecording() }
+            onVoiceCaptureTrigger: { toggleVoiceRecording() },
+            onSpotlightTrigger: { handleSpotlightTrigger() }
         )
         print("⌨️ [ContentView] Hotkey listener started: \(hotkeyManager.isListening)")
     }
     
     // MARK: - Logic Handlers
-
+    
+    private func handleSpotlightTrigger() {
+        print("✨ [ContentView] Spotlight hotkey triggered!")
+        container.spotlightController.toggle()
+    }
     
     // MARK: - Input Mode Management
     
@@ -388,19 +391,14 @@ struct ContentView: View {
             let imageIndex: Int?
             
             switch selectedAIService {
-            case .gemini:
-                // Gemini service might need update or we keep it compatible with old struct if it uses a different one
-                // For now, assuming GeminiService has its own signature or isn't used in Local mode
-                 // Converting back to simple context for Gemini if needed, or update Gemini signature later.
-                 // Since we are in .local mode usually, let's focus on that.
-                 // Actually ContentView uses same logic. Let's assume GeminiService still takes [(String, [String])]
-                 // We might need to simplify for Gemini if it hasn't been updated.
-                 let simpleContext = relevantItems.map { ($0.content, $0.tags) }
-                (answer, imageIndex) = await geminiService.generateAnswerWithImageDetection(
+            case .grok:
+                // Grok handles its own agentic RAG decision
+                answer = await grokService.generateAnswer(
                     question: capturedText,
-                    clipboardContext: simpleContext,
+                    clipboardContext: clipboardContext,
                     appName: clipboardMonitor.currentAppName
                 )
+                imageIndex = nil
             case .local:
                 // Streaming Implementation for Local AI
                 var fullAnswer = ""
@@ -430,7 +428,7 @@ struct ContentView: View {
             
             await MainActor.run {
                 // Check for errors and get error message
-                let errorMessage = geminiService.lastErrorMessage
+                let errorMessage = grokService.lastErrorMessage
                 handleAIResponse(answer: answer, imageIndex: imageIndex, contextItems: relevantItems, errorMessage: errorMessage)
             }
         }
@@ -591,32 +589,21 @@ struct ContentView: View {
     
     // MARK: - API Key Helpers
     
-    private func saveAPIKey(_ key: String) {
-        UserDefaults.standard.set(key, forKey: "Gemini_API_Key")
-        geminiService.updateApiKey(key)
-        
-        // No need to restart monitoring as dependencies are injected by reference
-        // and GeminiService handles its own key state.
+    private func saveAPIKey(_ key: String, key keyName: String) {
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        UserDefaults.standard.set(trimmedKey, forKey: keyName)
+        grokService.updateApiKey(trimmedKey)
     }
     
-    private func getStoredAPIKey() -> String {
+    private func getStoredAPIKey(_ keyName: String) -> String {
         // 1. Check process environment
-        if let envKey = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !envKey.isEmpty { return envKey }
+        if keyName == "Grok_API_Key",
+           let envKey = ProcessInfo.processInfo.environment["GROK_API_KEY"],
+           !envKey.isEmpty { return envKey }
         
         // 2. Check UserDefaults
-        if let stored = UserDefaults.standard.string(forKey: "Gemini_API_Key"), !stored.isEmpty {
+        if let stored = UserDefaults.standard.string(forKey: keyName), !stored.isEmpty {
             return stored
-        }
-        
-        // 3. Check local .env file manually (Fallback for development)
-        let envPath = URL(fileURLWithPath: #file).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent(".env")
-        if let content = try? String(contentsOf: envPath, encoding: .utf8) {
-            let lines = content.components(separatedBy: .newlines)
-            for line in lines {
-                if line.starts(with: "GEMINI_API_KEY=") {
-                    return line.replacingOccurrences(of: "GEMINI_API_KEY=", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-            }
         }
         
         return ""
@@ -654,7 +641,7 @@ struct SettingsView: View {
     @Binding var elevenLabsKey: String
     @Binding var selectedService: AIServiceType
     
-    @State private var tempGeminiKey: String = ""
+    @State private var tempGrokKey: String = ""
     @State private var tempElevenLabsKey: String = ""
     
     var body: some View {
@@ -668,14 +655,14 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Gemini API Key")
+                        Text("Grok API Key")
                             .font(.headline)
                         
-                        SecureField("Enter Gemini API key...", text: $tempGeminiKey)
+                        SecureField("Enter Grok API key...", text: $tempGrokKey)
                             .textFieldStyle(.roundedBorder)
-                            .onAppear { tempGeminiKey = apiKey }
+                            .onAppear { tempGrokKey = apiKey }
                         
-                        Text("Required for Gemini services. Keys are stored locally.")
+                        Text("Required for Grok xAI services. Keys are stored locally.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -699,7 +686,7 @@ struct SettingsView: View {
                 Button("Cancel") { dismiss() }
                 Spacer()
                 Button("Save") {
-                    apiKey = tempGeminiKey
+                    apiKey = tempGrokKey
                     elevenLabsKey = tempElevenLabsKey
                     dismiss()
                 }

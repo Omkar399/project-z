@@ -198,9 +198,16 @@ struct ClipboardListView: View {
     
     private func performTransform(_ item: Item, instruction: String) {
         Task {
-            guard let result = await container.localAIService.transformText(text: item.content, instruction: instruction) else { return }
-            await MainActor.run {
-                ClipboardService.shared.copyTextToClipboard(result)
+            let result: String?
+            if container.selectedAIServiceType == .local {
+                result = await container.localAIService.transformText(text: item.content, instruction: instruction)
+            } else {
+                result = await container.grokService.transformText(text: item.content, instruction: instruction)
+            }
+            if let result = result {
+                await MainActor.run {
+                    ClipboardService.shared.copyTextToClipboard(result)
+                }
             }
         }
     }

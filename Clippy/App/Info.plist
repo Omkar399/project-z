@@ -28,6 +28,10 @@
 	<string>Clippy requires camera access for visual features.</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Clippy requires screen recording access to capture screen content for OCR text extraction when you press Option+V.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Clippy needs access to your calendar to help you check your schedule, find free time, and answer questions about your upcoming events.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Clippy needs access to your reminders to help you track tasks and to-dos.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2025 Barathwaj Anandan. All rights reserved.</string>
 </dict>
