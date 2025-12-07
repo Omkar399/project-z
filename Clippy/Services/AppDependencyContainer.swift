@@ -62,7 +62,7 @@ class AppDependencyContainer: ObservableObject {
         self.grokService.setCalendarService(calendarService)
         
         // 5. Wire up RizzSessionManager
-        self.rizzSessionManager.setup(hotkeyManager: self.hotkeyManager)
+        self.rizzSessionManager.setup(hotkeyManager: self.hotkeyManager, clipboardMonitor: self.clipboardMonitor)
         self.hotkeyManager.rizzSessionManager = self.rizzSessionManager
     }
     

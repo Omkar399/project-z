@@ -65,6 +65,31 @@ class ClipboardMonitor: ObservableObject {
         isMonitoring = false
     }
     
+    // MARK: - Pause/Resume (e.g. for Rizz Mode)
+    
+    func pause() {
+        timer?.invalidate()
+        timer = nil
+        // We do NOT set isMonitoring = false because this is a temporary pause
+        print("⏸️ [ClipboardMonitor] Paused monitoring")
+    }
+    
+    func resume() {
+        guard timer == nil else { return }
+        
+        // Reset change count so we don't process what happened during pause
+        let pasteboard = NSPasteboard.general
+        lastChangeCount = pasteboard.changeCount
+        
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            Task { @MainActor in
+                self.contextEngine?.updateContext()
+                self.checkClipboard()
+            }
+        }
+        print("▶️ [ClipboardMonitor] Resumed monitoring")
+    }
+    
     func requestAccessibilityPermission() {
         contextEngine?.requestAccessibilityPermission()
     }

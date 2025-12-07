@@ -9,9 +9,11 @@ class RizzSessionManager: ObservableObject {
     @Published var currentIndex: Int = 0
     
     private var hotkeyManager: HotkeyManager?
+    private weak var clipboardMonitor: ClipboardMonitor?
     
-    func setup(hotkeyManager: HotkeyManager) {
+    func setup(hotkeyManager: HotkeyManager, clipboardMonitor: ClipboardMonitor) {
         self.hotkeyManager = hotkeyManager
+        self.clipboardMonitor = clipboardMonitor
     }
     
     func startSession(options: [String]) {
@@ -96,6 +98,9 @@ class RizzSessionManager: ObservableObject {
     }
     
     private func pasteTextAtomic(_ text: String) {
+        // Pause monitoring to prevent saving Rizz options to history
+        Task { @MainActor in clipboardMonitor?.pause() }
+        
         let pasteboard = NSPasteboard.general
         let oldContent = pasteboard.string(forType: .string)
         
@@ -114,12 +119,14 @@ class RizzSessionManager: ObservableObject {
         vKeyUp?.post(tap: .cghidEventTap)
         
         // Restore clipboard after short delay
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) { [weak self] in
             if let old = oldContent {
                 let p = NSPasteboard.general
                 p.clearContents()
                 p.setString(old, forType: .string)
             }
+            // Resume monitoring
+            Task { @MainActor in self?.clipboardMonitor?.resume() }
         }
     }
 }
