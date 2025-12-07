@@ -436,10 +436,22 @@ struct SpotlightView: View {
         let vectorIds = Set(searchResults.map { $0.0 })
         
         if !vectorIds.isEmpty {
+            // Filter items matching the search results
+            log("🔎 Available SwiftData items: \(allItems.count)")
+            
             let relevantItems = allItems.filter { item in
                 guard let itemVectorId = item.vectorId else { return false }
+                // Print check for first few items
                 return vectorIds.contains(itemVectorId)
             }
+            
+            if relevantItems.isEmpty && !vectorIds.isEmpty {
+                 log("⚠️ Mismatch! Search found \(vectorIds.count) vectors but 0 SwiftData items matched.")
+                 // Print first few SwiftData IDs to debug
+                 let firstFewIDs = allItems.prefix(3).compactMap { $0.vectorId?.uuidString }
+                 log("⚠️ First 3 SwiftData IDs: \(firstFewIDs)")
+            }
+            
             clipboardContext = relevantItems.map { item in
                 RAGContextItem(
                     content: item.content,

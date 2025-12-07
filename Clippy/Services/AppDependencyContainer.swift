@@ -81,6 +81,9 @@ class AppDependencyContainer: ObservableObject {
             clipboardMonitor: clipboardMonitor
         )
         
+        // Inject dependencies into SpotlightWindowController
+        spotlightController.inject(modelContext: modelContext)
+        
         // Inject dependencies into GuardianService and start monitoring
         guardianService.setDependencies(
             contextEngine: contextEngine,

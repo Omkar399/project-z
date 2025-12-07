@@ -142,6 +142,9 @@ struct ClipboardListView: View {
                 return .ignored
             }
         }
+        .onAppear {
+            print("📊 [ClipboardListView] allItems count: \(allItems.count)")
+        }
         .navigationTitle(category?.rawValue ?? "Clipboard")
         .onChange(of: searchText) { _, newValue in
             // Cancel previous task

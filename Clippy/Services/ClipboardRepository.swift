@@ -68,7 +68,7 @@ class SwiftDataClipboardRepository: ClipboardRepository {
         modelContext.insert(newItem)
         
         // Note: Autosave is usually enabled, but we can force it if needed.
-        // try modelContext.save()
+        try modelContext.save()
         
         print("💾 [Repository] Saved item: \(title ?? "No Title") (ID: \(finalVectorId.uuidString))")
         return newItem
