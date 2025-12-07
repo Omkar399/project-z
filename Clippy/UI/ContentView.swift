@@ -128,7 +128,8 @@ struct ContentView: View {
             onTextCaptureTrigger: { handleTextCaptureTrigger() },
             onVoiceCaptureTrigger: { toggleVoiceRecording() },
             onSpotlightTrigger: { handleSpotlightTrigger() },
-            onPrivacyModeTrigger: { handlePrivacyModeTrigger() }
+            onPrivacyModeTrigger: { handlePrivacyModeTrigger() },
+            onRizzTrigger: { handleRizzTrigger() }
         )
         print("⌨️ [ContentView] Hotkey listener started: \(hotkeyManager.isListening)")
     }
@@ -153,6 +154,7 @@ struct ContentView: View {
         case textCapture // Option+X
         case voiceCapture // Option+Space
         case visionCapture // Option+V
+        case rizzMode // Option+R
     }
     
     @State private var activeInputMode: InputMode = .none
@@ -184,6 +186,76 @@ struct ContentView: View {
         print("\n🔥 [ContentView] Hotkey triggered (Option+S)")
         // Legacy suggestions removed. This hotkey is currently free or can be reassigned.
         resetInputState()
+    }
+    
+    private func handleRizzTrigger() {
+        print("\n😎 [ContentView] Rizz hotkey triggered (Option+R)")
+        
+        resetInputState()
+        activeInputMode = .rizzMode
+        
+        clippyController.setState(.thinking, message: "Analyzing Rizz... 😎")
+        
+        visionParser.parseCurrentScreen { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let parsedContent):
+                    print("✅ Vision parsing successful for Rizz Mode!")
+                    
+                    if !parsedContent.fullText.isEmpty {
+                        self.processRizzContext(parsedContent.fullText)
+                    } else {
+                        self.clippyController.setState(.error, message: "No text found 👀")
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Vision parsing failed: \(error.localizedDescription)")
+                    
+                    if case VisionParserError.screenCaptureFailed = error {
+                        self.clippyController.setState(.error, message: "Need Screen Recording permission 🔐")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    } else {
+                        self.clippyController.setState(.error, message: "Vision failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func processRizzContext(_ context: String) {
+        print("😎 [ContentView] Generating Rizz reply...")
+        
+        Task {
+            let reply = await grokService.generateRizzReply(context: context)
+            
+            await MainActor.run {
+                if let reply = reply, !reply.isEmpty {
+                    // Show in bubble
+                    self.clippyController.setState(.done, message: "Rizz ready! ✨")
+                    
+                    // Insert at cursor (like text capture)
+                    self.textCaptureService.insertTextAtCursor(reply)
+                    
+                    // Also copy to clipboard as backup
+                    ClipboardService.shared.copyTextToClipboard(reply)
+                    
+                } else {
+                    self.clippyController.setState(.error, message: "Couldn't generate rizz 😔")
+                }
+                
+                // Reset mode after delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    if self.activeInputMode == .rizzMode {
+                        self.activeInputMode = .none
+                        self.clippyController.hide()
+                    }
+                }
+            }
+        }
     }
     
     private func handleVisionHotkeyTrigger() {

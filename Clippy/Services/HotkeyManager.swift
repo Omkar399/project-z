@@ -14,6 +14,7 @@ class HotkeyManager: ObservableObject {
     private var onVoiceCaptureTrigger: (() -> Void)?
     private var onSpotlightTrigger: (() -> Void)?
     private var onPrivacyModeTrigger: (() -> Void)?
+    private var onRizzTrigger: (() -> Void)?
     
     func startListening(
         onTrigger: @escaping () -> Void,
@@ -21,7 +22,8 @@ class HotkeyManager: ObservableObject {
         onTextCaptureTrigger: @escaping () -> Void,
         onVoiceCaptureTrigger: @escaping () -> Void,
         onSpotlightTrigger: @escaping () -> Void,
-        onPrivacyModeTrigger: @escaping () -> Void
+        onPrivacyModeTrigger: @escaping () -> Void,
+        onRizzTrigger: @escaping () -> Void
     ) {
         self.onTrigger = onTrigger
         self.onVisionTrigger = onVisionTrigger
@@ -29,6 +31,7 @@ class HotkeyManager: ObservableObject {
         self.onVoiceCaptureTrigger = onVoiceCaptureTrigger
         self.onSpotlightTrigger = onSpotlightTrigger
         self.onPrivacyModeTrigger = onPrivacyModeTrigger
+        self.onRizzTrigger = onRizzTrigger
         
         let eventMask = (1 << CGEventType.keyDown.rawValue)
         
@@ -65,6 +68,15 @@ class HotkeyManager: ObservableObject {
                     print("⌨️ [HotkeyManager] Option+V detected!")
                     DispatchQueue.main.async {
                         manager.onVisionTrigger?()
+                    }
+                    return nil // Consume event
+                }
+                
+                // Check for Option+R (Rizz Mode)
+                if event.flags.contains(.maskAlternate) && event.getIntegerValueField(.keyboardEventKeycode) == 15 { // 15 = R
+                    print("😎 [HotkeyManager] Option+R detected (Rizz Mode)!")
+                    DispatchQueue.main.async {
+                        manager.onRizzTrigger?()
                     }
                     return nil // Consume event
                 }

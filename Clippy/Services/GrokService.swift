@@ -221,6 +221,34 @@ class GrokService: ObservableObject, AIServiceProtocol {
         return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 300, temperature: 0.5, conversationHistory: conversationHistory)
     }
     
+    // MARK: - Rizz Mode
+    
+    func generateRizzReply(context: String) async -> String? {
+        print("😎 [GrokService] Generating Rizz reply...")
+        
+        isProcessing = true
+        defer { isProcessing = false }
+        
+        let prompt = """
+        You are a witty, charming, and charismatic dating assistant ("Rizz God"). 
+        Analyze the following chat context visible on the user's screen. 
+        Identify the last message sent by the other person and suggest the PERFECT reply.
+        
+        Style:
+        - Confident, playful, slightly flirty (if appropriate), and engaging.
+        - Short and punchy (text message style).
+        - Use lowercase appropriately for casual vibe.
+        - No cringe, just smooth.
+        
+        Context from screen:
+        \(context.prefix(2000))
+        
+        Output ONLY the suggested reply text. No quotes, no explanations.
+        """
+        
+        return await callGrok(prompt: prompt, systemPrompt: "You are a master of wit and charm. Reply with only the suggested text.", maxTokens: 100, temperature: 0.8)
+    }
+    
     // MARK: - Tag Generation
     
     func generateTags(
@@ -569,4 +597,3 @@ class GrokService: ObservableObject, AIServiceProtocol {
         return result
     }
 }
-
