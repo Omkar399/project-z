@@ -153,6 +153,8 @@ class SpotlightWindowController: NSWindowController {
         }
         
         currentHeight = targetHeight
+    }
+    
     func inject(modelContext: ModelContext) {
         print("💉 [SpotlightWindowController] Injecting ModelContext...")
         let spotlightView = AnyView(
