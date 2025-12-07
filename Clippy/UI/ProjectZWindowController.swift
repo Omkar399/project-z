@@ -152,7 +152,7 @@ class ProjectZWindowController: ObservableObject {
         // Create the window (sized for 124x93 ProjectZ animation)
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 124, height: 93),
-            styleMask: [.borderless],
+            styleMask: [.borderless], // Borderless for transparency
             backing: .buffered,
             defer: false
         )
@@ -161,8 +161,8 @@ class ProjectZWindowController: ObservableObject {
         
         // Configure window properties
         window.contentViewController = hostingController
-        window.isOpaque = false
-        window.backgroundColor = NSColor.clear
+        window.isOpaque = false // Critical for transparency
+        window.backgroundColor = NSColor.clear // Critical for transparency
         window.hasShadow = false
         window.level = .floating
         window.ignoresMouseEvents = false

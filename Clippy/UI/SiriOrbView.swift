@@ -73,6 +73,7 @@ struct SiriOrbView: View {
                 )
         }
         .frame(width: 80, height: 80)
+        .background(Color.clear) // Ensure view background is clear
         // Ensure animations start immediately
         .onAppear {
             startAnimations()
