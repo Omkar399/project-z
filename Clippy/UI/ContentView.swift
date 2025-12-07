@@ -14,6 +14,7 @@ struct ContentView: View {
     private var clippyController: ProjectZWindowController { container.clippyController }
     private var grokService: GrokService { container.grokService }
     private var audioRecorder: AudioRecorder { container.audioRecorder }
+    private var rizzSessionManager: RizzSessionManager { container.rizzSessionManager }
 
     // Constants/State
     @State private var elevenLabsService: ElevenLabsService?
@@ -128,7 +129,8 @@ struct ContentView: View {
             onTextCaptureTrigger: { handleTextCaptureTrigger() },
             onVoiceCaptureTrigger: { toggleVoiceRecording() },
             onSpotlightTrigger: { handleSpotlightTrigger() },
-            onPrivacyModeTrigger: { handlePrivacyModeTrigger() }
+            onPrivacyModeTrigger: { handlePrivacyModeTrigger() },
+            onRizzTrigger: { handleRizzTrigger() }
         )
         print("⌨️ [ContentView] Hotkey listener started: \(hotkeyManager.isListening)")
     }
@@ -153,6 +155,7 @@ struct ContentView: View {
         case textCapture // Option+X
         case voiceCapture // Option+Space
         case visionCapture // Option+V
+        case rizzMode // Control+Return
     }
     
     @State private var activeInputMode: InputMode = .none
@@ -167,6 +170,11 @@ struct ContentView: View {
         if isRecordingVoice {
             isRecordingVoice = false
             _ = audioRecorder.stopRecording()
+        }
+        
+        // Cancel Rizz Session
+        if activeInputMode == .rizzMode {
+            rizzSessionManager.cancel()
         }
         
         // Reset UI state
@@ -184,6 +192,75 @@ struct ContentView: View {
         print("\n🔥 [ContentView] Hotkey triggered (Option+S)")
         // Legacy suggestions removed. This hotkey is currently free or can be reassigned.
         resetInputState()
+    }
+    
+    private func handleRizzTrigger() {
+        print("\n😎 [ContentView] Rizz hotkey triggered (Control+Return)")
+        
+        // If already in Rizz mode, maybe we want to commit or restart?
+        // Let's assume re-trigger restarts or does nothing.
+        // But HotkeyManager handles key interception, so re-trigger shouldn't happen unless we didn't consume it.
+        
+        resetInputState()
+        activeInputMode = .rizzMode
+        
+        clippyController.setState(.thinking, message: "Generating Rizz... 😎")
+        
+        visionParser.parseCurrentScreen { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let parsedContent):
+                    print("✅ Vision parsing successful for Rizz Mode!")
+                    
+                    if !parsedContent.fullText.isEmpty {
+                        self.processRizzContext(parsedContent.fullText)
+                    } else {
+                        self.clippyController.setState(.error, message: "No text found 👀")
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Vision parsing failed: \(error.localizedDescription)")
+                    
+                    if case VisionParserError.screenCaptureFailed = error {
+                        self.clippyController.setState(.error, message: "Need Screen Recording permission 🔐")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    } else {
+                        self.clippyController.setState(.error, message: "Vision failed: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func processRizzContext(_ context: String) {
+        print("😎 [ContentView] Generating Rizz options...")
+        
+        Task {
+            let options = await grokService.generateRizzOptions(context: context)
+            
+            await MainActor.run {
+                if !options.isEmpty {
+                    self.clippyController.setState(.done, message: "Cycle: ↑/↓ | Send: Enter")
+                    
+                    // Start the interactive session
+                    self.rizzSessionManager.startSession(options: options)
+                    
+                    // We don't hide Clippy here; we keep it visible as instructions
+                    // RizzSessionManager handles the typing/cycling
+                    
+                } else {
+                    self.clippyController.setState(.error, message: "Couldn't generate rizz 😔")
+                    // Reset mode after delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        self.resetInputState()
+                    }
+                }
+            }
+        }
     }
     
     private func handleVisionHotkeyTrigger() {

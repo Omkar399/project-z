@@ -15,6 +15,7 @@ class AppDependencyContainer: ObservableObject {
     let guardianService: GuardianService
     let conversationManager: ConversationManager
     let slashCommandHandler: SlashCommandHandler
+    let rizzSessionManager: RizzSessionManager // New Service
     
     // AI Services
     let grokService: GrokService
@@ -47,6 +48,7 @@ class AppDependencyContainer: ObservableObject {
         self.conversationManager = ConversationManager()
         self.slashCommandHandler = SlashCommandHandler()
         self.mem0Service = Mem0Service()
+        self.rizzSessionManager = RizzSessionManager() // Initialize RizzManager
         
         // 2. Initialize Dependent Services
         self.clipboardMonitor = ClipboardMonitor()
@@ -58,6 +60,10 @@ class AppDependencyContainer: ObservableObject {
         
         // 4. Wire up calendar service to Grok
         self.grokService.setCalendarService(calendarService)
+        
+        // 5. Wire up RizzSessionManager
+        self.rizzSessionManager.setup(hotkeyManager: self.hotkeyManager)
+        self.hotkeyManager.rizzSessionManager = self.rizzSessionManager
     }
     
     func inject(modelContext: ModelContext) {
