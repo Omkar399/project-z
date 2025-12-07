@@ -241,6 +241,7 @@ class GrokService: ObservableObject, AIServiceProtocol {
         4.  **Technique**: Use "push-pull", misinterpretation, or playful arrogance.
         5.  **NO CRINGE**: Do NOT use hashtags, excessive emojis (max 1), or generic compliments like "you are beautiful".
         6.  **Goal**: Get a laugh, a reaction, or set up a date without asking directly yet.
+        7.  **ANTI-HALLUCINATION**: Do NOT define symbols (like ®). Do NOT explain trademarks. If the input contains only symbols, make a joke about it.
         
         CONTEXT FROM SCREEN:
         \(context.prefix(2500))
@@ -248,7 +249,7 @@ class GrokService: ObservableObject, AIServiceProtocol {
         OUTPUT: Provide ONLY the exact text of the reply. No quotes, no "Here is the reply:", just the words.
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: "You are the Rizz God. Your replies are legendary. Short, witty, effective.", maxTokens: 100, temperature: 0.85)
+        return await callGrok(prompt: prompt, systemPrompt: "You are the Rizz God. You NEVER define words or symbols. You only give witty replies.", maxTokens: 100, temperature: 0.85)
     }
     
     // MARK: - Tag Generation

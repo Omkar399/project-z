@@ -75,10 +75,12 @@ class HotkeyManager: ObservableObject {
                 // Check for Option+R (Rizz Mode)
                 if event.flags.contains(.maskAlternate) && event.getIntegerValueField(.keyboardEventKeycode) == 15 { // 15 = R
                     print("😎 [HotkeyManager] Option+R detected (Rizz Mode)!")
+                    
+                    // Consume event IMMEDIATELY to prevent system from typing '®'
                     DispatchQueue.main.async {
                         manager.onRizzTrigger?()
                     }
-                    return nil // Consume event
+                    return nil // Return nil to block the event propagation
                 }
                 
                 // Check for Cmd+Shift+K (Spotlight mode)
