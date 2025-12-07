@@ -140,10 +140,13 @@ class GrokService: ObservableObject, AIServiceProtocol {
         Classify as "clipboard", "calendar_read", "calendar_create", or "general".
         
         Rules:
-        - "my", "that", "what was", "the code", "I copied" → clipboard
+        - "my", "that", "what was", "the code", "I copied", "it", "this" → clipboard
+        - "summarize", "explain", "rewrite", "fix" (without explicit external topic) → clipboard
         - "calendar", "schedule", "meeting", "event", "free", "busy", "today", "tomorrow", "this week" (checking/reading) → calendar_read
         - "create", "schedule", "add to calendar", "set up a meeting", "remind me to" (action/writing) → calendar_create
-        - "what is", "how to", "explain", "who is" → general
+        - "what is", "who is" (only if clearly encyclopedic/general) → general
+        
+        IMPORTANT: Bias heavily towards "clipboard" for ambiguous queries (e.g. "what does this mean?", "fix the error"). Assume the user is referring to their recent work/clipboard unless explicitly asking for general info.
         
         Output ONLY JSON (no reasoning):
         {"category": "calendar_create", "confidence": 0.95}
