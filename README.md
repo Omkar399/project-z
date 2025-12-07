@@ -60,6 +60,7 @@ Project Z uses an **Agentic RAG** system to route your queries intelligently.
 **Your AI Wingman.** Project Z monitors your screen context.
 - **Intervention:** If you open a chat with a "blocked" contact (configured in settings), Z wakes up.
 - **Savage Roasts:** It generates a funny, savage roast to stop you from making a mistake.
+- **Supported Apps:** Messages, WhatsApp, Telegram, Signal.
 > *"Bestie, put the phone down. He's not worth the therapy bills. 🚩"*
 
 ### <img src="https://img.icons8.com/?id=3726&format=png&size=24" valign="middle" /> **Rizz Mode**
@@ -80,26 +81,26 @@ We use a **Hybrid Architecture** to ensure speed and privacy.
 
 ```mermaid
 graph TD
-    User((User)) -->|Option+X| App[macOS App (Swift)]
+    User(("User")) -->|Option+X| App["macOS App (Swift)"]
     
     subgraph "Local Device (macOS)"
-        App -->|Monitor| Clipboard[Clipboard Manager]
-        App -->|Analyze| Vision[Apple Vision Framework]
-        App -->|Persist| SwiftData[(Local DB)]
+        App -->|Monitor| Clipboard["Clipboard Manager"]
+        App -->|Analyze| Vision["Apple Vision Framework"]
+        App -->|Persist| SwiftData[("Local DB")]
     end
     
     subgraph "Memory Service (Local Python)"
-        App <-->|HTTP| Mem0[Mem0 Service (FastAPI)]
-        Mem0 <-->|Store| VectorDB[(Qdrant)]
-        Mem0 -->|Embed| OpenAI[OpenAI Embeddings]
+        App <-->|HTTP| Mem0["Mem0 Service (FastAPI)"]
+        Mem0 <-->|Store| VectorDB[("Qdrant")]
+        Mem0 -->|Embed| OpenAI["OpenAI Embeddings"]
     end
     
     subgraph "Reasoning Cloud (xAI)"
-        App <-->|Inference| Grok[Grok-4 API]
-        Grok -->|Agentic Decision| Action{Action Router}
-        Action -->|Text| Reply[Generate Answer]
-        Action -->|Calendar| Cal[Manage Schedule]
-        Action -->|Roast| Roast[Guardian Intervention]
+        App <-->|Inference| Grok["Grok-4 API"]
+        Grok -->|Agentic Decision| Action{"Action Router"}
+        Action -->|Text| Reply["Generate Answer"]
+        Action -->|Calendar| Cal["Manage Schedule"]
+        Action -->|Roast| Roast["Guardian Intervention"]
     end
 ```
 
@@ -148,12 +149,23 @@ python main.py
 
 ## 🎮 Usage Guide
 
+### Keyboard Shortcuts
+
 | Shortcut | Function | Description |
 |:---:|:---|:---|
-| **`⌥ + X`** | **Talk / Ask** | Opens the chat interface. Ask about your clipboard, schedule, or general questions. |
-| **`⌥ + V`** | **Vision Mode** | Captures the screen and extracts text/context for analysis. |
-| **`⌥ + S`** | **Spotlight** | Opens the quick-search history view (Semantic Search). |
+| **`⌥ + X`** | **Talk / Ask** | Opens the main chat interface. Ask about your clipboard, schedule, or general questions. |
+| **`⌥ + V`** | **Vision Mode** | Captures the active window/screen and extracts text or context for analysis. |
+| **`⌥ + Space`** | **Voice Mode** | *Experimental* - Trigger voice capture to talk to Project Z directly. |
+| **`Cmd + Shift + K`** | **Spotlight** | Opens the quick-search history view (Semantic Search). |
+| **`Ctrl + Return`** | **Rizz Mode** | **Context Aware:** Analyzes the chat you are looking at and generates 4 reply options. |
+| **`Shift + Esc`** | **Privacy Toggle** | Instantly toggles "Incognito Mode" (stops recording clipboard/screen). |
 | **`Esc`** | **Dismiss** | Hides the assistant immediately. |
+
+### Rizz Mode Controls
+*While Rizz Mode is active:*
+*   **`↑` / `↓` Arrow Keys:** Cycle through generated reply options.
+*   **`Enter`:** Commit selected reply (pastes into text field).
+*   **`Esc`:** Cancel Rizz Mode.
 
 ### Example Queries
 *   *"What was that code snippet I copied about Python lists?"*
