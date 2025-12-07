@@ -2,9 +2,9 @@
 
 <img src="https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=128" alt="Project Z Logo" />
 
-# ⚡️ Project Z
+# <img src="https://img.icons8.com/?id=ESeqfDjC5eVO&format=png&size=48" valign="middle" /> Project Z
 ### The Memory-Augmented OS Copilot
-#### 🏆 xAI Hackathon 2025 Submission
+#### <img src="https://img.icons8.com/?id=kuU7I7uPlHfo&format=png&size=32" valign="middle" /> xAI Hackathon 2025 Submission
 
 [![xAI Hackathon](https://img.shields.io/badge/Submission-xAI_Hackathon_2025-black?style=for-the-badge&logo=x&logoColor=white)](https://x.ai)
 [![Powered by Grok](https://img.shields.io/badge/AI-Grok_4_Fast-000000?style=for-the-badge&logo=x&logoColor=white)](https://x.ai)
@@ -23,7 +23,7 @@ It combines the reasoning speed of **Grok-4** with the long-term memory of **Mem
 
 ---
 
-## 📚 Table of Contents
+## <img src="https://img.icons8.com/?id=IYgsr2y1M2w8&format=png&size=32" valign="middle" /> Table of Contents
 - [About the Project](#-about-the-project)
 - [Key Features](#-key-features)
 - [Architecture](#-architecture)
@@ -34,7 +34,7 @@ It combines the reasoning speed of **Grok-4** with the long-term memory of **Mem
 
 ---
 
-## 🤖 About The Project
+## <img src="https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=32" valign="middle" /> About The Project
 
 Project Z was built to solve a specific problem: **AI assistants are amnesiacs.** They don't know what you copied 5 minutes ago, they don't know your schedule, and they definitely don't know you shouldn't text your ex at 2 AM.
 
@@ -44,14 +44,14 @@ By integrating deeply with macOS accessibility and clipboard APIs, and backing i
 
 ---
 
-## ✨ Key Features
+## <img src="https://img.icons8.com/?id=qdQpy48X3Rjv&format=png&size=32" valign="middle" /> Key Features
 
-### <img src="https://img.icons8.com/?id=MOgfTL97LKST&format=png&size=24" valign="middle" /> **Agentic Brain (Grok-4)**
+### <img src="https://img.icons8.com/?id=RZ3Ux64yROj8&format=png&size=24" valign="middle" /> **Agentic Brain (Grok-4)**
 Project Z uses an **Agentic RAG** system to route your queries intelligently.
 - **Context Aware:** It knows if you're asking about your clipboard, your calendar, or general knowledge.
 - **Fast Reasoning:** Powered by `grok-4-fast` for near-instant responses.
 
-### <img src="https://img.icons8.com/?id=11698&format=png&size=24" valign="middle" /> **Smart Clipboard**
+### <img src="https://img.icons8.com/?id=b2Ffb1mhmDna&format=png&size=24" valign="middle" /> **Smart Clipboard**
 - **Semantic Search:** Don't remember the exact words? Search by meaning. "The tracking code I copied this morning" finds `1Z999...`.
 - **Auto-Tagging:** Every copied item is analyzed and tagged by AI (e.g., `["code", "swift", "networking"]`).
 - **Infinite History:** Stored locally and vector-indexed for retrieval.
@@ -63,19 +63,19 @@ Project Z uses an **Agentic RAG** system to route your queries intelligently.
 - **Supported Apps:** Messages, WhatsApp, Telegram, Signal.
 > *"Bestie, put the phone down. He's not worth the therapy bills. 🚩"*
 
-### <img src="https://img.icons8.com/?id=3726&format=png&size=24" valign="middle" /> **Rizz Mode**
+### <img src="https://img.icons8.com/?id=IYyZyQ9av9Vf&format=png&size=24" valign="middle" /> **Rizz Mode**
 Struggling with a reply on a dating app?
 - **Context Analysis:** Reads the chat history on your screen.
 - **Suggestion Engine:** Generates 4 distinct reply options (Playful, Direct, Mysterious, Casual).
 - **Anti-Cringe:** Fine-tuned to avoid generic AI-sounding responses.
 
-### <img src="https://img.icons8.com/?id=986&format=png&size=24" valign="middle" /> **Vision Intelligence**
+### <img src="https://img.icons8.com/?id=VROWGw8C8j6y&format=png&size=24" valign="middle" /> **Vision Intelligence**
 - **Screen Reading:** Press `Option+V` to have Z analyze your current window.
 - **OCR:** Extract text from images, videos, or protected websites instantly.
 
 ---
 
-## 🏗 Architecture
+## <img src="https://img.icons8.com/?id=13542&format=png&size=32" valign="middle" /> Architecture
 
 We use a **Hybrid Architecture** to ensure speed and privacy.
 
@@ -106,7 +106,7 @@ graph TD
 
 ---
 
-## 🚀 Getting Started
+## <img src="https://img.icons8.com/?id=bY5t0noHcfXn&format=png&size=32" valign="middle" /> Getting Started
 
 ### Prerequisites
 
@@ -147,7 +147,7 @@ python main.py
 
 ---
 
-## 🎮 Usage Guide
+## <img src="https://img.icons8.com/?id=WAOz8R8T2yma&format=png&size=32" valign="middle" /> Usage Guide
 
 ### Keyboard Shortcuts
 
@@ -175,7 +175,7 @@ python main.py
 
 ---
 
-## 🛠 Technology Stack
+## <img src="https://img.icons8.com/?id=VLOHQKgPwqxY&format=png&size=32" valign="middle" /> Technology Stack
 
 ### **macOS Client**
 *   **Language:** Swift 6
@@ -195,7 +195,7 @@ python main.py
 
 ---
 
-## 🗺 Roadmap
+## <img src="https://img.icons8.com/?id=RpspyEyOEJOU&format=png&size=32" valign="middle" /> Roadmap
 
 - [x] **Core Clipboard Engine**
 - [x] **Grok-4 Integration**
@@ -207,7 +207,7 @@ python main.py
 
 ---
 
-## 📄 License
+## <img src="https://img.icons8.com/?id=iyojsvSTyosf&format=png&size=32" valign="middle" /> License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
