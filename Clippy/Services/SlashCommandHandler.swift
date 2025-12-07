@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import Combine
+import EventKit
 
 class SlashCommandHandler {
     struct Command {
@@ -31,6 +33,11 @@ class SlashCommandHandler {
     weak var conversationManager: ConversationManager?
     weak var guardianService: GuardianService?
     weak var mem0Service: Mem0Service?
+    weak var calendarService: CalendarService?
+    weak var grokService: GrokService?
+    
+    // Output for async command results
+    let outputPublisher = PassthroughSubject<String, Never>()
     
     private var commands: [Command] = []
     
@@ -151,6 +158,91 @@ class SlashCommandHandler {
                 return CommandResult(
                     success: true,
                     message: "\(emoji) Guardian mode \(status)",
+                    shouldClearInput: true
+                )
+            },
+            
+            Command(
+                name: "meetnotes",
+                description: "Prepare a briefing for upcoming meetings",
+                aliases: ["meetings", "notes"]
+            ) { [weak self] in
+                guard let self = self else { return CommandResult(success: false, message: "Error", shouldClearInput: false) }
+                
+                Task {
+                    guard let calendar = self.calendarService,
+                          let mem0 = self.mem0Service,
+                          let grok = self.grokService else {
+                        print("⚠️ Services not available for /meetnotes")
+                        return
+                    }
+                    
+                    // 1. Fetch upcoming meetings
+                    let events = await calendar.getNextEvents(limit: 3)
+                    if events.isEmpty {
+                        await MainActor.run { print("💬 No upcoming meetings found.") }
+                        return
+                    }
+                    
+                    var briefingContext = "Here are the upcoming meetings:\n\n"
+                    
+                    for (index, event) in events.enumerated() {
+                        let title = event.title ?? "Untitled"
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "MMM d, h:mm a"
+                        let time = formatter.string(from: event.startDate)
+                        
+                        briefingContext += "Event \(index + 1):\nTitle: \(title)\nTime: \(time)\n"
+                        
+                        // Enhanced Context Retrieval
+                        // We search for the Title + Attendees to find relevant long-term memories
+                        var searchTerms = title
+                        if let attendees = event.attendees {
+                             let attendeeNames = attendees.compactMap { $0.name }.joined(separator: " ")
+                             if !attendeeNames.isEmpty {
+                                 briefingContext += "Attendees: \(attendeeNames)\n"
+                                 searchTerms += " " + attendeeNames
+                             }
+                        }
+                        
+                        // Also check notes for keywords? (Optional, might be too long)
+                        // For now, Title + Attendees is a strong signal.
+                        
+                        let memories = await mem0.searchMemories(query: searchTerms, limit: 5)
+                        if !memories.isEmpty {
+                            briefingContext += "🧠 Related Memory: " + memories.map { $0.memory }.joined(separator: "; ") + "\n"
+                        } else {
+                            briefingContext += "🧠 No related memories found for query: '\(searchTerms)'\n"
+                        }
+                        briefingContext += "\n"
+                    }
+                    
+                    briefingContext += """
+                    
+                    Task: Generate a briefing for these meetings.
+                    output ONLY a JSON array with this structure (no markdown fields):
+                    [
+                        {
+                            "title": "Meeting Title",
+                            "time": "Date string",
+                            "summary": "One sentence summary combining context",
+                            "points": ["Key point 1", "Key point 2"]
+                        }
+                    ]
+                    """
+                    
+                    // 3. Ask Grok for summary
+                    let response = await grok.chat(message: briefingContext, context: nil)
+                    
+                    await MainActor.run {
+                        // Send the raw JSON response
+                        self.outputPublisher.send(response)
+                    }
+                }
+                
+                return CommandResult(
+                    success: true,
+                    message: "📅 Analyzing calendar and memories...",
                     shouldClearInput: true
                 )
             }

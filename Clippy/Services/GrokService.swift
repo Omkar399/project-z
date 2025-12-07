@@ -473,6 +473,18 @@ class GrokService: ObservableObject, AIServiceProtocol {
         return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 1000, temperature: 0.5)
     }
     
+    // MARK: - Generic Chat
+    
+    /// Public chat interface for general purposes
+    func chat(message: String, context: String? = nil) async -> String {
+        var prompt = message
+        if let context = context {
+            prompt = "Context:\n\(context)\n\n" + message
+        }
+        
+        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt) ?? "Sorry, I couldn't generate a response."
+    }
+
     // MARK: - Core API Call (Streaming)
     
     private func callGrokStreaming(

@@ -72,6 +72,20 @@ class CalendarService: ObservableObject {
         return await fetchEvents(from: now, to: endDate)
     }
     
+    /// Get the next N upcoming events (sorted by date)
+    /// Validates authorization internally
+    func getNextEvents(limit: Int = 3) async -> [EKEvent] {
+         let now = Date()
+         // Look ahead 30 days to find the next few events
+         let endDate = Calendar.current.date(byAdding: .day, value: 30, to: now)!
+         
+         let events = await fetchEvents(from: now, to: endDate)
+         
+         // Sort by start date and limit
+         let sortedEvents = events.sorted { ($0.startDate ?? Date()) < ($1.startDate ?? Date()) }
+         return Array(sortedEvents.prefix(limit))
+    }
+    
     /// Check if user is free at a specific time
     func isFreeAt(date: Date, duration: TimeInterval = 3600) async -> Bool {
         let endDate = date.addingTimeInterval(duration)

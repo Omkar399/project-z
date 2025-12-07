@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 struct SpotlightView: View {
     @EnvironmentObject var container: AppDependencyContainer
@@ -9,6 +10,19 @@ struct SpotlightView: View {
     
     @State private var query: String = ""
     @State private var response: String = ""
+    @State private var briefings: [Briefing] = [] // For card UI
+    
+    struct Briefing: Identifiable, Codable {
+        let id = UUID()
+        let title: String
+        let time: String
+        let summary: String
+        let points: [String]
+        
+        enum CodingKeys: String, CodingKey {
+            case title, time, summary, points
+        }
+    }
     @State private var isProcessing: Bool = false
     @State private var isVisible: Bool = false
     @FocusState private var isInputFocused: Bool
@@ -20,6 +34,9 @@ struct SpotlightView: View {
     // Slash commands
     @State private var showCommandSuggestions: Bool = false
     @State private var commandSuggestions: [SlashCommandHandler.CommandSuggestion] = []
+    
+    // Keyboard Monitor
+    @StateObject private var keyboardMonitor = KeyboardMonitor()
     
     // Theme
     private let gradient = LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -212,8 +229,63 @@ struct SpotlightView: View {
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
             
-            // MARK: - Response Area
-            if !response.isEmpty {
+            // MARK: - Briefing Cards (JSON)
+            if !briefings.isEmpty {
+                ScrollView(.vertical, showsIndicators: true) {
+                    VStack(spacing: 16) {
+                        ForEach(briefings) { briefing in
+                            VStack(alignment: .leading, spacing: 12) {
+                                // Header
+                                HStack {
+                                    Circle()
+                                        .fill(LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        .frame(width: 8, height: 8)
+                                    Text(briefing.time)
+                                        .font(.caption)
+                                        .bold()
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Text(briefing.title)
+                                    .font(.headline)
+                                    .lineLimit(nil) // Allow multi-line title
+                                
+                                Text(briefing.summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(nil) // Allow full summary
+                                
+                                Divider()
+                                
+                                ForEach(briefing.points, id: \.self) { point in
+                                    HStack(alignment: .top, spacing: 6) {
+                                        Text("•").foregroundStyle(.tertiary)
+                                        Text(point)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading) // Full width
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(Color.white.opacity(0.1), lineWidth: 1))
+                            .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
+                        }
+                    }
+                    .padding(.horizontal, 4) // Minimal horizontal padding
+                    .padding(.bottom, 24)
+                    .background(GeometryReader { geometry in
+                        Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
+                    })
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            
+            // MARK: - Legacy Text Response
+            if !response.isEmpty && briefings.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
                     // Measuring content size with background GeometryReader if needed, 
                     // or just letting ScrollView expand naturally within limits.
@@ -324,6 +396,42 @@ struct SpotlightView: View {
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isVisible)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isVisible)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: response)
+        // Keyboard Backspace Observer
+        .onReceive(keyboardMonitor.deletePublisher) {
+            if query.isEmpty && (!response.isEmpty || !briefings.isEmpty) {
+                withAnimation {
+                    response = ""
+                    briefings = []
+                    commandSuggestions = []
+                    showCommandSuggestions = false
+                }
+            }
+        }
+        // Slash Command Output Observer
+        .onReceive(container.slashCommandHandler.outputPublisher) { output in
+            if !output.isEmpty {
+                withAnimation {
+                    // Try to decode as cards
+                    let cleaned = output
+                        .replacingOccurrences(of: "```json", with: "")
+                        .replacingOccurrences(of: "```", with: "")
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if let data = cleaned.data(using: .utf8),
+                       let decoded = try? JSONDecoder().decode([Briefing].self, from: data) {
+                        self.briefings = decoded
+                        self.response = "" // Hide text response
+                    } else {
+                        // Fallback to text
+                        self.briefings = []
+                        self.response = output
+                    }
+                    
+                    // Ensure input is cleared
+                    query = ""
+                }
+            }
+        }
     }
     
     // MARK: - Actions
@@ -428,6 +536,9 @@ struct SpotlightView: View {
             clipboardContext.append(contentsOf: memoryItems)
         }
         
+        
+
+        
         // Grok Generation
         print("🤖 Asking AI...")
         let conversationHistory = container.conversationManager.getFormattedHistory()
@@ -509,5 +620,27 @@ struct ViewHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+// Keyboard Monitor
+class KeyboardMonitor: ObservableObject {
+    let deletePublisher = PassthroughSubject<Void, Never>()
+    private var monitor: Any?
+    
+    init() {
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            // 51 is Backspace (Delete).
+            if event.keyCode == 51 {
+                self?.deletePublisher.send()
+            }
+            return event
+        }
+    }
+    
+    deinit {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 }

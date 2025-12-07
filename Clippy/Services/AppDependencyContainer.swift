@@ -108,6 +108,8 @@ class AppDependencyContainer: ObservableObject {
         slashCommandHandler.conversationManager = conversationManager
         slashCommandHandler.guardianService = guardianService
         slashCommandHandler.mem0Service = mem0Service
+        slashCommandHandler.calendarService = calendarService
+        slashCommandHandler.grokService = grokService
         
         print("✅ [AppDependencyContainer] All dependencies injected. Guardian mode active.")
     }
