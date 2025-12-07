@@ -76,7 +76,7 @@ class ProjectZWindowController: ObservableObject {
                     }
                 }
                 .padding(8)
-                .background(Color.clear)
+                .background(Color.clear) // Ensure root SwiftUI view is clear
                 .contentShape(Rectangle()) // Makes entire area respond to drag
             )
             
@@ -158,6 +158,10 @@ class ProjectZWindowController: ObservableObject {
         )
         
         guard let window = window, let hostingController = hostingController else { return }
+        
+        // Ensure hosting view background is clear (CRITICAL for transparency)
+        hostingController.view.wantsLayer = true
+        hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
         
         // Configure window properties
         window.contentViewController = hostingController
