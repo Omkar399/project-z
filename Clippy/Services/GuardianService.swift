@@ -15,6 +15,7 @@ class GuardianService: ObservableObject {
     
     private var contextEngine: ContextEngine?
     private var spotlightController: SpotlightWindowController?
+    private var grokService: GrokService?
     private var appActivationObserver: NSObjectProtocol?
     private var appLaunchObserver: NSObjectProtocol?
     private var continuousMonitoringTimer: Timer?
@@ -47,9 +48,10 @@ class GuardianService: ObservableObject {
         loadGuardedContacts()
     }
     
-    func setDependencies(contextEngine: ContextEngine, spotlightController: SpotlightWindowController) {
+    func setDependencies(contextEngine: ContextEngine, spotlightController: SpotlightWindowController, grokService: GrokService) {
         self.contextEngine = contextEngine
         self.spotlightController = spotlightController
+        self.grokService = grokService
     }
     
     // MARK: - Monitoring
@@ -255,12 +257,25 @@ class GuardianService: ObservableObject {
     private func triggerIntervention(for contact: GuardedContact, in appName: String) {
         print("🚨 [Guardian] Triggering intervention for \(contact.name)")
         
-        // Prepare nudge message
-        let nudgeMessage = contact.customNudge ?? generateDefaultNudge(for: contact.name, app: appName)
-        
-        // Show Spotlight with nudge
-        DispatchQueue.main.async { [weak self] in
-            self?.spotlightController?.showWithNudge(message: nudgeMessage)
+        Task {
+            // Prepare nudge message
+            // If custom nudge is set, use it. Otherwise, generate SAVAGE roast via Grok.
+            var nudgeMessage = contact.customNudge
+            
+            if nudgeMessage == nil {
+                if let grok = self.grokService {
+                    nudgeMessage = await grok.generateSavageRoast(contactName: contact.name)
+                } else {
+                    nudgeMessage = generateDefaultNudge(for: contact.name, app: appName)
+                }
+            }
+            
+            let message = nudgeMessage ?? "Wait, don't do it."
+            
+            // Show Spotlight with nudge
+            await MainActor.run { [weak self] in
+                self?.spotlightController?.showWithNudge(message: message)
+            }
         }
     }
     

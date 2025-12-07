@@ -366,6 +366,28 @@ class GrokService: ObservableObject, AIServiceProtocol {
         return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 300, temperature: 0.5, conversationHistory: conversationHistory)
     }
     
+    // MARK: - Savage Guardian Mode
+    
+    func generateSavageRoast(contactName: String) async -> String {
+        print("🛡️😈 [GrokService] Generating savage roast for \(contactName)...")
+        
+        let prompt = """
+        ROLE: You are a savage, funny, and protective best friend interfering to stop me from texting my toxic ex/contact "\(contactName)".
+        TASK: Generate a SHORT, SAVAGE, funny roast/warning to stop me from messaging them.
+        
+        GUIDELINES:
+        1. Be SAVAGE and ruthless but funny.
+        2. Maximum 1-2 sentences. Keep it punchy.
+        3. Use emojis like 🚩, 💀, 🤡.
+        4. Remind me I have dignity.
+        5. "Don't do it", "Have some self respect", etc.
+        
+        Output ONLY the message.
+        """
+        
+        return await callGrok(prompt: prompt, systemPrompt: "You are a savage best friend. Roast me.", maxTokens: 60, temperature: 0.9) ?? "Bro, literally why? 💀 Don't do it."
+    }
+    
     // MARK: - Rizz Mode
     
     func generateRizzOptions(context: String) async -> [String] {
