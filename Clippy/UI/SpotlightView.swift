@@ -29,6 +29,7 @@ struct SpotlightView: View {
     private var inputFieldBackground: some View {
         RoundedRectangle(cornerRadius: 16)
             .fill(.ultraThinMaterial)
+            .shadow(color: isProcessing ? .purple.opacity(0.3) : .clear, radius: isProcessing ? 15 : 0)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .strokeBorder(
@@ -37,10 +38,11 @@ struct SpotlightView: View {
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: isProcessing ? 1.5 : 1
+                        lineWidth: isProcessing ? 2 : 1
                     )
+                    .opacity(isProcessing ? 0.8 : 1.0)
+                    .animation(isProcessing ? .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : .default, value: isProcessing)
             )
-            .shadow(color: isProcessing ? .blue.opacity(0.2) : .clear, radius: 10, x: 0, y: 0)
     }
     
     private var commandSuggestionsView: some View {
@@ -227,29 +229,31 @@ struct SpotlightView: View {
                     // or just letting ScrollView expand naturally within limits.
                     // For dynamic resizing, we notify the controller of the content height.
                     
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Header
-                        HStack {
-                            Image(systemName: "text.bubble.fill")
-                                .foregroundStyle(gradient)
-                            Text("Answer")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Header
+                            HStack {
+                                Image(systemName: "text.bubble.fill")
+                                    .foregroundStyle(gradient)
+                                Text("Answer")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.bottom, 4)
+                            
+                            // Content
+                            Text(response)
+                                .font(.system(size: 16, design: .rounded))
+                                .foregroundColor(.primary)
+                                .lineSpacing(6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
                         }
-                        .padding(.bottom, 4)
-                        
-                        // Content
-                        Text(response)
-                            .font(.system(size: 16, design: .rounded))
-                            .foregroundColor(.primary)
-                            .lineSpacing(6)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
+                        .padding(20)
+                        .background(GeometryReader { geometry in
+                            Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
+                        })
                     }
-                    .padding(20)
-                    .background(GeometryReader { geometry in
-                        Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
-                    })
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 16)
@@ -362,6 +366,19 @@ struct SpotlightView: View {
                     showNudge(message: message)
                 }
             }
+            
+            // Auto-focus observer
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("SpotlightDidShow"),
+                object: nil,
+                queue: .main
+            ) { _ in
+                // Force reset focus
+                isInputFocused = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    isInputFocused = true
+                }
+            }
         }
         .scaleEffect(isVisible ? 1.0 : 0.96)
         .opacity(isVisible ? 1.0 : 0.0)
@@ -404,7 +421,8 @@ struct SpotlightView: View {
             return
         }
         
-        query = ""
+        // Clear query but DON'T clear response yet (keep previous answer visible)
+        // query = "" // DEFERRED until answer comes back
         withAnimation { isProcessing = true }
         
         Task {
@@ -481,7 +499,11 @@ struct SpotlightView: View {
         )
         
         await MainActor.run {
-            isProcessing = false
+            withAnimation {
+                isProcessing = false
+                // Clear query now that answer is here
+                if answer != nil { self.query = "" }
+            }
             
             if let answer = answer, !answer.isEmpty {
                 response = answer

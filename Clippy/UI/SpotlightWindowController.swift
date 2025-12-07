@@ -205,6 +205,10 @@ class SpotlightWindowController: NSWindowController {
             // Force keyboard focus WITHOUT activating app (stays in fullscreen space)
             self.panel.makeKey()
             self.panel.makeFirstResponder(self.hostingView)
+            
+            // Notify view to grab focus
+            NotificationCenter.default.post(name: NSNotification.Name("SpotlightDidShow"), object: nil)
+            
             print("✨ [SpotlightController] Window shown over fullscreen, keyboard ready")
         }
     }
