@@ -14,6 +14,67 @@ struct SpotlightView: View {
     @State private var debugLog: [String] = []
     @FocusState private var isInputFocused: Bool
     
+    // Guardian mode
+    @State private var isNudgeMode: Bool = false
+    @State private var nudgeMessage: String = ""
+    
+    // Slash commands
+    @State private var showCommandSuggestions: Bool = false
+    @State private var commandSuggestions: [SlashCommandHandler.CommandSuggestion] = []
+    
+    private var inputFieldBackground: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isProcessing ? Color.blue.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
+            )
+    }
+    
+    private var commandSuggestionsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(commandSuggestions) { suggestion in
+                Button(action: {
+                    query = suggestion.command
+                    showCommandSuggestions = false
+                    handleQuery()
+                }) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Text(suggestion.command)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .foregroundColor(.blue)
+                        
+                        Text(suggestion.description)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .background(Color.secondary.opacity(0.05))
+                
+                if suggestion.id != commandSuggestions.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(Color.blue.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Input field
@@ -32,6 +93,9 @@ struct SpotlightView: View {
                     .onSubmit {
                         handleQuery()
                     }
+                    .onChange(of: query) { newValue in
+                        updateCommandSuggestions(for: newValue)
+                    }
                     .disabled(isProcessing)
                 
                 if !query.isEmpty {
@@ -46,31 +110,78 @@ struct SpotlightView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .strokeBorder(isProcessing ? Color.blue.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
-                    )
-            )
+            .background(inputFieldBackground)
             
-            // Response area - fades in when response arrives (no ScrollView!)
+            // Slash Command Autocomplete
+            if showCommandSuggestions && !commandSuggestions.isEmpty {
+                commandSuggestionsView
+            }
+            
+            // Guardian Nudge - appears when a guarded contact is detected
+            if isNudgeMode {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(.system(size: 24))
+                            .foregroundColor(.orange)
+                        Text("GUARDIAN MODE")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                    }
+                    
+                    Text(nudgeMessage)
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                    
+                    HStack {
+                        Button("I understand") {
+                            dismissNudge()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        
+                        Spacer()
+                        
+                        Text("Press Esc to close")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.orange.opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.orange.opacity(0.5), lineWidth: 2)
+                        )
+                )
+                .padding(.top, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // Response area - scrollable for long responses
             if !response.isEmpty {
-                Text(response)
-                    .font(.system(size: 15))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .padding(.top, 12)
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    .id(response) // Force refresh when response changes
+                VStack(alignment: .leading, spacing: 0) {
+                    ScrollView {
+                        Text(response)
+                            .font(.system(size: 15))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .padding(16)
+                    }
+                    .frame(minHeight: 80, maxHeight: 400)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.ultraThinMaterial)
+                )
+                .padding(.top, 12)
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .id(response.count) // Force refresh when response changes
             }
             
             // Debug log area - always visible
@@ -148,6 +259,17 @@ struct SpotlightView: View {
                 isInputFocused = true
                 print("🎯 [SpotlightView] Focus requested")
             }
+            
+            // Listen for Guardian nudges
+            NotificationCenter.default.addObserver(
+                forName: NSNotification.Name("ShowGuardianNudge"),
+                object: nil,
+                queue: .main
+            ) { notification in
+                if let message = notification.userInfo?["message"] as? String {
+                    showNudge(message: message)
+                }
+            }
         }
     }
     
@@ -157,6 +279,25 @@ struct SpotlightView: View {
         guard !query.isEmpty, !isProcessing else { return }
         
         let userQuery = query
+        
+        // Check if it's a slash command
+        if userQuery.hasPrefix("/") {
+            let slashHandler = container.slashCommandHandler
+            let result = slashHandler.execute(userQuery)
+            
+            // Show result
+            response = result.message
+            
+            // Clear input if requested
+            if result.shouldClearInput {
+                query = ""
+            }
+            
+            // Hide suggestions
+            showCommandSuggestions = false
+            
+            return
+        }
         
         // Clear query but DON'T clear response yet (keep previous answer visible)
         query = ""
@@ -212,12 +353,28 @@ struct SpotlightView: View {
             log("🔍 Context: \(clipboardContext.count) items")
         }
         
-        // Send to Grok with agentic RAG
+        // Search Mem0 for long-term memories
+        log("🧠 Searching Mem0 for relevant memories...")
+        var mem0Memories: [Mem0Service.Memory] = []
+        if container.mem0Service.isAvailable {
+            mem0Memories = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
+            log("🧠 Found \(mem0Memories.count) Mem0 memories")
+        } else {
+            log("⚠️ Mem0 service not available")
+        }
+        
+        // Send to Grok with agentic RAG + conversation history + Mem0 memories
         log("🤖 Calling Grok API...")
+        let conversationHistory = container.conversationManager.getFormattedHistory()
+        log("💬 Session history: \(conversationHistory.count) messages")
+        
+        // For now, we'll pass Mem0 memories as part of the clipboard context
+        // TODO: Create a dedicated parameter for long-term memories
         let answer = await container.grokService.generateAnswer(
             question: userQuery,
             clipboardContext: clipboardContext,
-            appName: container.clipboardMonitor.currentAppName
+            appName: container.clipboardMonitor.currentAppName,
+            conversationHistory: conversationHistory
         )
         
         if let answer = answer {
@@ -235,6 +392,24 @@ struct SpotlightView: View {
             if let answer = answer, !answer.isEmpty {
                 response = answer
                 log("✅ Response displayed!")
+                
+                // Save to conversation history (session memory)
+                container.conversationManager.addMessage(role: "user", content: userQuery)
+                container.conversationManager.addMessage(role: "assistant", content: answer)
+                log("💬 Saved to session history")
+                
+                // Save to Mem0 (long-term memory) - extract facts
+                if container.mem0Service.isAvailable {
+                    Task {
+                        let messages = [(role: "user", content: userQuery), (role: "assistant", content: answer)]
+                        let success = await container.mem0Service.addMemory(messages: messages)
+                        if success {
+                            log("🧠 Saved to Mem0 long-term memory")
+                        } else {
+                            log("⚠️ Failed to save to Mem0")
+                        }
+                    }
+                }
             } else {
                 let error = container.grokService.lastErrorMessage ?? "No response from Grok"
                 response = "Error: \(error)"
@@ -248,6 +423,42 @@ struct SpotlightView: View {
     private func clearQuery() {
         withAnimation(.easeOut(duration: 0.2)) {
             query = ""
+        }
+    }
+    
+    // MARK: - Guardian Mode
+    
+    private func showNudge(message: String) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            nudgeMessage = message
+            isNudgeMode = true
+        }
+        print("🛡️ [SpotlightView] Showing nudge: \(message)")
+    }
+    
+    private func dismissNudge() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            isNudgeMode = false
+        }
+        // Reset Guardian so it can warn again if user comes back to this contact
+        container.guardianService.resetLastWarnedContact()
+        print("🛡️ [SpotlightView] Nudge dismissed")
+    }
+    
+    // MARK: - Slash Commands
+    
+    private func updateCommandSuggestions(for input: String) {
+        if input.hasPrefix("/") {
+            let suggestions = container.slashCommandHandler.getSuggestions(for: input)
+            withAnimation(.easeInOut(duration: 0.15)) {
+                commandSuggestions = suggestions
+                showCommandSuggestions = !suggestions.isEmpty
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                showCommandSuggestions = false
+                commandSuggestions = []
+            }
         }
     }
 }

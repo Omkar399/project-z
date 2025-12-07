@@ -12,12 +12,16 @@ class AppDependencyContainer: ObservableObject {
     let textCaptureService: TextCaptureService
     let clippyController: ClippyWindowController
     var spotlightController: SpotlightWindowController!
+    let guardianService: GuardianService
+    let conversationManager: ConversationManager
+    let slashCommandHandler: SlashCommandHandler
     
     // AI Services
     let localAIService: LocalAIService
     let grokService: GrokService
     let audioRecorder: AudioRecorder
     let calendarService: CalendarService
+    let mem0Service: Mem0Service
     
     /// Currently selected AI service (persisted in UserDefaults)
     @Published var selectedAIServiceType: AIServiceType = .local {
@@ -51,6 +55,10 @@ class AppDependencyContainer: ObservableObject {
         self.grokService = GrokService(apiKey: UserDefaults.standard.string(forKey: "Grok_API_Key") ?? "")
         self.calendarService = CalendarService()
         self.textCaptureService = TextCaptureService()
+        self.guardianService = GuardianService()
+        self.conversationManager = ConversationManager()
+        self.slashCommandHandler = SlashCommandHandler()
+        self.mem0Service = Mem0Service()
         
         // 2. Initialize Dependent Services
         self.clipboardMonitor = ClipboardMonitor()
@@ -85,5 +93,19 @@ class AppDependencyContainer: ObservableObject {
             clippyController: clippyController,
             clipboardMonitor: clipboardMonitor
         )
+        
+        // Inject dependencies into GuardianService and start monitoring
+        guardianService.setDependencies(
+            contextEngine: contextEngine,
+            spotlightController: spotlightController
+        )
+        guardianService.startMonitoring()
+        
+        // Inject dependencies into SlashCommandHandler
+        slashCommandHandler.conversationManager = conversationManager
+        slashCommandHandler.guardianService = guardianService
+        slashCommandHandler.mem0Service = mem0Service
+        
+        print("✅ [AppDependencyContainer] All dependencies injected. Guardian mode active.")
     }
 }

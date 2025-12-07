@@ -28,20 +28,23 @@ class SpotlightWindowController: NSWindowController {
     }
     
     private func setupPanel() {
-        // Create a keyable panel that accepts keyboard input
+        // Create a keyable panel that accepts keyboard input WITHOUT activating app
         panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 200),
-            styleMask: [.borderless, .fullSizeContentView],
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 600),
+            styleMask: [.borderless, .fullSizeContentView, .resizable, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
         
-        // Panel configuration for Spotlight-like behavior
-        panel.level = .floating
+        // Panel configuration for Spotlight-like behavior (appears over fullscreen apps!)
+        // screenSaver level (1000) ensures it's above everything including fullscreen apps
+        panel.level = .screenSaver
         panel.backgroundColor = NSColor.clear
         panel.isOpaque = false
         panel.hasShadow = false  // SwiftUI handles shadow
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        // moveToActiveSpace: moves window to current space (including fullscreen spaces!)
+        // fullScreenAuxiliary: can coexist with fullscreen apps
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .ignoresCycle]
         panel.animationBehavior = .utilityWindow
         panel.isMovableByWindowBackground = true  // Make it draggable!
         panel.acceptsMouseMovedEvents = true
@@ -119,9 +122,9 @@ class SpotlightWindowController: NSWindowController {
     func show() {
         guard !panel.isVisible else { return }
         
-        // Reset panel position to center
-        if let screen = NSScreen.main {
-            let screenFrame = screen.frame
+        // Position on the CURRENT screen (works for fullscreen spaces too)
+        if let currentScreen = NSScreen.main ?? NSScreen.screens.first {
+            let screenFrame = currentScreen.visibleFrame
             let panelFrame = panel.frame
             let x = screenFrame.midX - panelFrame.width / 2
             let y = screenFrame.midY - panelFrame.height / 2 + 100
@@ -130,10 +133,11 @@ class SpotlightWindowController: NSWindowController {
         
         // Animate appearance
         panel.alphaValue = 0.0
-        panel.makeKeyAndOrderFront(nil)
         
-        // Activate immediately
-        NSApp.activate(ignoringOtherApps: true)
+        // Order front WITHOUT activating the app (prevents space switch!)
+        panel.orderFrontRegardless()
+        
+        // Make key for keyboard input, but DON'T activate app
         panel.makeKey()
         
         NSAnimationContext.runAnimationGroup { context in
@@ -142,12 +146,26 @@ class SpotlightWindowController: NSWindowController {
             panel.animator().alphaValue = 1.0
         } completionHandler: { [weak self] in
             guard let self = self else { return }
-            // Force focus again after animation
+            // Force keyboard focus WITHOUT activating app (stays in fullscreen space)
             self.panel.makeKey()
             self.panel.makeFirstResponder(self.hostingView)
-            NSApp.activate(ignoringOtherApps: true)
-            print("✨ [SpotlightController] Window shown and activated, firstResponder set")
+            print("✨ [SpotlightController] Window shown over fullscreen, keyboard ready")
         }
+    }
+    
+    func showWithNudge(message: String) {
+        // Show the window with a pre-filled nudge message
+        print("🚨 [SpotlightController] Showing nudge: \(message)")
+        
+        // Notify the view to display nudge mode
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ShowGuardianNudge"),
+            object: nil,
+            userInfo: ["message": message]
+        )
+        
+        // Show the window
+        show()
     }
     
     func hide() {

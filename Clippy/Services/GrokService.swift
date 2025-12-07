@@ -70,7 +70,8 @@ class GrokService: ObservableObject, AIServiceProtocol {
     func generateAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         print("🤖 [GrokService] Agentic RAG - Processing question...")
         print("   Question: \(question)")
@@ -88,7 +89,7 @@ class GrokService: ObservableObject, AIServiceProtocol {
         guard let classification = await classifyQuestion(question) else {
             print("   ❌ Classification failed, defaulting to clipboard search")
             // Fallback to clipboard search
-            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName)
+            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
         }
         
         print("   📊 Classification: \(classification.category) (confidence: \(String(format: "%.2f", classification.confidence)))")
@@ -97,15 +98,15 @@ class GrokService: ObservableObject, AIServiceProtocol {
         if classification.category == "clipboard" {
             // PHASE 2a: RAG Path - Search clipboard + provide context
             print("🔍 [GrokService] Phase 2a: Using clipboard RAG path")
-            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName)
+            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
         } else if classification.category == "calendar" {
             // PHASE 2b: Calendar Path - Fetch calendar data
             print("📅 [GrokService] Phase 2b: Using calendar path")
-            return await generateCalendarAnswer(question: question, appName: appName)
+            return await generateCalendarAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
         } else {
             // PHASE 2c: Direct Path - General knowledge
             print("🌐 [GrokService] Phase 2c: Using direct general knowledge path")
-            return await generateDirectAnswer(question: question, appName: appName)
+            return await generateDirectAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
         }
     }
     
@@ -153,7 +154,8 @@ class GrokService: ObservableObject, AIServiceProtocol {
     private func generateRAGAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         let contextText = buildContextString(clipboardContext)
         
@@ -166,14 +168,15 @@ class GrokService: ObservableObject, AIServiceProtocol {
         Instructions: Answer using ONLY the context. Return the direct answer with NO preamble. If not found, say "Not found in clipboard."
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 500, temperature: 0.3)
+        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 500, temperature: 0.3, conversationHistory: conversationHistory)
     }
     
     // MARK: - Calendar Answer Generation
     
     private func generateCalendarAnswer(
         question: String,
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         guard let calendarService = calendarService else {
             return "Calendar service not available."
@@ -199,14 +202,15 @@ class GrokService: ObservableObject, AIServiceProtocol {
         Instructions: Answer the question using the calendar data. Be direct and helpful.
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 500, temperature: 0.3)
+        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 500, temperature: 0.3, conversationHistory: conversationHistory)
     }
     
     // MARK: - Direct Answer Generation
     
     private func generateDirectAnswer(
         question: String,
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         let prompt = """
         \(question)
@@ -214,7 +218,7 @@ class GrokService: ObservableObject, AIServiceProtocol {
         Answer directly and concisely.
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 300, temperature: 0.5)
+        return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 300, temperature: 0.5, conversationHistory: conversationHistory)
     }
     
     // MARK: - Tag Generation
@@ -407,7 +411,8 @@ class GrokService: ObservableObject, AIServiceProtocol {
         prompt: String,
         systemPrompt: String = "You are a helpful assistant.",
         maxTokens: Int = 500,
-        temperature: Double = 0.7
+        temperature: Double = 0.7,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         guard !apiKey.isEmpty else {
             print("   ⚠️ No valid API key configured")
@@ -424,12 +429,22 @@ class GrokService: ObservableObject, AIServiceProtocol {
         }
         
         // OpenAI-compatible request format
+        // Build messages array with history
+        var messages: [[String: String]] = [
+            ["role": "system", "content": systemPrompt]
+        ]
+        
+        // Add conversation history if provided
+        for historyMessage in conversationHistory {
+            messages.append(["role": historyMessage.role, "content": historyMessage.content])
+        }
+        
+        // Add current prompt
+        messages.append(["role": "user", "content": prompt])
+        
         let requestBody: [String: Any] = [
             "model": modelName,
-            "messages": [
-                ["role": "system", "content": systemPrompt],
-                ["role": "user", "content": prompt]
-            ],
+            "messages": messages,
             "max_tokens": maxTokens,
             "temperature": temperature
         ]

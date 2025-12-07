@@ -11,6 +11,13 @@ class ContextEngine: ObservableObject {
     @Published var accessibilityContext: String = ""
     @Published var hasAccessibilityPermission: Bool = false
     
+    /// Context data structure for Guardian and other services
+    struct AppContext {
+        let appName: String
+        let windowTitle: String?
+        let focusedElement: String?
+    }
+    
     init() {
         checkAccessibilityPermission()
     }
@@ -34,6 +41,24 @@ class ContextEngine: ObservableObject {
     }
     
     // MARK: - Context Capture
+    
+    /// Get current application context (for Guardian and other services)
+    nonisolated func getCurrentContext() -> AppContext {
+        // Update and read current values safely on MainActor
+        MainActor.assumeIsolated {
+            updateContext()
+        }
+        
+        let appName = MainActor.assumeIsolated { currentAppName }
+        let windowTitle = MainActor.assumeIsolated { currentWindowTitle }
+        let context = MainActor.assumeIsolated { accessibilityContext }
+        
+        return AppContext(
+            appName: appName,
+            windowTitle: windowTitle.isEmpty ? nil : windowTitle,
+            focusedElement: context.isEmpty ? nil : context
+        )
+    }
     
     /// Update current app and window context
     func updateContext() {

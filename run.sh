@@ -14,6 +14,47 @@ done
 
 # Kill existing processes
 killall -9 Clippy 2>/dev/null
+pkill -f "mem0_service/main.py" 2>/dev/null
+
+# Start Mem0 Service
+echo "🧠 Starting Mem0 service..."
+cd mem0_service
+
+# Check if Python 3 is available
+if ! command -v python3 &> /dev/null; then
+    echo "⚠️  Python 3 not found. Mem0 service will not start."
+    echo "   Install Python 3 to enable long-term memory features."
+    cd ..
+else
+    # Check if dependencies are installed
+    if [ ! -d "venv" ]; then
+        echo "📦 Creating Python virtual environment..."
+        python3 -m venv venv
+        source venv/bin/activate
+        echo "📦 Installing Mem0 dependencies..."
+        pip install --quiet -r requirements.txt
+    else
+        source venv/bin/activate
+    fi
+    
+    # Start Mem0 service in background
+    echo "🚀 Starting Mem0 service on http://localhost:8420..."
+    nohup python main.py > mem0_service.log 2>&1 &
+    MEM0_PID=$!
+    echo "   Mem0 PID: $MEM0_PID"
+    
+    # Wait a moment for service to start
+    sleep 2
+    
+    # Check if service started successfully
+    if curl -s http://localhost:8420/health > /dev/null 2>&1; then
+        echo "✅ Mem0 service running"
+    else
+        echo "⚠️  Mem0 service may not have started correctly (check mem0_service/mem0_service.log)"
+    fi
+    
+    cd ..
+fi
 
 echo "🔨 Building Clippy..."
 
@@ -45,11 +86,14 @@ if [ -d "$APP_PATH" ]; then
     if [ "$DEBUG_MODE" = true ]; then
         echo "🐛 Starting in Debug Mode..."
         echo "   Logs will appear below. Press Ctrl+C to stop."
+        echo "   (Mem0 service will continue running in background)"
         echo ""
         "$APP_PATH/Contents/MacOS/$EXECUTABLE_NAME"
     else
         open "$APP_PATH"
         echo "🚀 App started: $APP_PATH"
+        echo "📝 Note: Mem0 service running in background (http://localhost:8420)"
+        echo "   To stop: pkill -f mem0_service/main.py"
     fi
 else
     echo "❌ App not found at $APP_PATH"

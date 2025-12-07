@@ -105,7 +105,8 @@ class LocalAIService: ObservableObject, AIServiceProtocol {
     func generateAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         print("🤖 [LocalAIService] Generating RAG answer...")
         isProcessing = true

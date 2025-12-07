@@ -10,7 +10,8 @@ protocol AIServiceProtocol: AnyObject, ObservableObject {
     func generateAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)]
     ) async -> String?
     
     /// Generate semantic tags for clipboard content

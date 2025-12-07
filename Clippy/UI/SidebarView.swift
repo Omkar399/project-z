@@ -36,6 +36,15 @@ struct SidebarView: View {
                         }
                     }
                 }
+                
+                Section {
+                    GuardianSettingsView()
+                        .environmentObject(container)
+                } header: {
+                    Label("Guardian Mode", systemImage: "shield.lefthalf.filled")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
             }
             .padding(.top, 44) // Clear traffic lights
             .listStyle(.sidebar)
@@ -213,5 +222,128 @@ struct KeyboardShortcutHint: View {
             
             Spacer()
         }
+    }
+}
+
+// MARK: - Guardian Settings View
+
+struct GuardianSettingsView: View {
+    @EnvironmentObject var container: AppDependencyContainer
+    @State private var newContactName: String = ""
+    @State private var showAddContact: Bool = false
+    
+    var guardianService: GuardianService {
+        container.guardianService
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Toggle Guardian On/Off
+            Toggle(isOn: Binding(
+                get: { guardianService.isEnabled },
+                set: { newValue in
+                    guardianService.isEnabled = newValue
+                    if newValue {
+                        guardianService.startMonitoring()
+                    } else {
+                        guardianService.stopMonitoring()
+                    }
+                }
+            )) {
+                HStack {
+                    Image(systemName: guardianService.isEnabled ? "shield.checkered" : "shield.slash")
+                        .font(.caption)
+                        .foregroundColor(guardianService.isEnabled ? .orange : .secondary)
+                    Text("Active")
+                        .font(.caption)
+                }
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            
+            Divider()
+            
+            // Guarded Contacts List
+            if guardianService.guardedContacts.isEmpty {
+                Text("No guarded contacts")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .italic()
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(guardianService.guardedContacts) { contact in
+                    HStack {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                        
+                        Text(contact.name)
+                            .font(.caption)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            guardianService.removeGuardedContact(id: contact.id)
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+            
+            // Add Contact Button
+            if showAddContact {
+                HStack(spacing: 4) {
+                    TextField("Name", text: $newContactName)
+                        .textFieldStyle(.plain)
+                        .font(.caption)
+                        .onSubmit {
+                            addContact()
+                        }
+                    
+                    Button(action: addContact) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button(action: { showAddContact = false }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(4)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(4)
+            } else {
+                Button(action: { showAddContact = true }) {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                        Text("Add Contact")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+    
+    private func addContact() {
+        guard !newContactName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guardianService.addGuardedContact(name: newContactName.trimmingCharacters(in: .whitespaces))
+        newContactName = ""
+        showAddContact = false
     }
 }

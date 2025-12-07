@@ -95,7 +95,8 @@ class GeminiService: ObservableObject, AIServiceProtocol {
     func generateAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
-        appName: String?
+        appName: String?,
+        conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
         // Convert RAGContextItem to legacy tuple format
         let legacyContext = clipboardContext.map { ($0.content, $0.tags) }
