@@ -72,11 +72,11 @@ class HotkeyManager: ObservableObject {
                     return nil // Consume event
                 }
                 
-                // Check for Option+R (Rizz Mode)
-                if event.flags.contains(.maskAlternate) && event.getIntegerValueField(.keyboardEventKeycode) == 15 { // 15 = R
-                    print("😎 [HotkeyManager] Option+R detected (Rizz Mode)!")
+                // Check for Control+Return (Rizz Mode)
+                if event.flags.contains(.maskControl) && event.getIntegerValueField(.keyboardEventKeycode) == 36 { // 36 = Return
+                    print("😎 [HotkeyManager] Control+Return detected (Rizz Mode)!")
                     
-                    // Consume event IMMEDIATELY to prevent system from typing '®'
+                    // Consume event IMMEDIATELY
                     DispatchQueue.main.async {
                         manager.onRizzTrigger?()
                     }

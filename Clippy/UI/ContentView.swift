@@ -189,7 +189,7 @@ struct ContentView: View {
     }
     
     private func handleRizzTrigger() {
-        print("\n😎 [ContentView] Rizz hotkey triggered (Option+R)")
+        print("\n😎 [ContentView] Rizz hotkey triggered (Control+Return)")
         
         resetInputState()
         activeInputMode = .rizzMode

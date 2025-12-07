@@ -109,7 +109,7 @@ struct SidebarView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             KeyboardShortcutHint(keys: "⌥X", description: "Ask")
                             KeyboardShortcutHint(keys: "⌥V", description: "OCR")
-                            KeyboardShortcutHint(keys: "⌥R", description: "Rizz")
+                            KeyboardShortcutHint(keys: "⌃⏎", description: "Rizz")
                             KeyboardShortcutHint(keys: "⌥␣", description: "Voice")
                             KeyboardShortcutHint(keys: "⇧Esc", description: "Incognito")
                         }
