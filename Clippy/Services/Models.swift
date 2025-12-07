@@ -38,11 +38,12 @@ enum ProjectZAnimationState {
     case thinking  // AI is processing the query (minimum 3 seconds)
     case done      // AI has completed processing
     case error     // An error occurred (API failure, etc.)
+    case incognito // Privacy mode is active
     
     /// The GIF file name for this animation state
     var gifFileName: String {
         switch self {
-        case .idle:
+        case .idle, .incognito: // Use idle animation base for incognito
             return "clippy-idle"
         case .writing:
             return "clippy-writing"
@@ -68,6 +69,8 @@ enum ProjectZAnimationState {
             return "Done!"
         case .error:
             return "Oops! Something went wrong"
+        case .incognito:
+            return "Incognito Mode"
         }
     }
 }
