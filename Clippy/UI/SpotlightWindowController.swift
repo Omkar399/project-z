@@ -1,5 +1,6 @@
 import Cocoa
 import SwiftUI
+import SwiftData
 
 // Custom panel that can become key window and accept keyboard input
 class KeyablePanel: NSPanel {
@@ -79,6 +80,7 @@ class SpotlightWindowController: NSWindowController {
             let y = screenFrame.midY - panelFrame.height / 2 + 100 // Slightly above center
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
+
         
         // Monitor for Escape key to dismiss
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -107,6 +109,16 @@ class SpotlightWindowController: NSWindowController {
         }
         
         self.window = panel
+    }
+    
+    func inject(modelContext: ModelContext) {
+        print("💉 [SpotlightWindowController] Injecting ModelContext...")
+        let spotlightView = AnyView(
+            SpotlightView()
+                .environmentObject(container)
+                .modelContext(modelContext)
+        )
+        hostingView.rootView = spotlightView
     }
     
     // MARK: - Public Methods
