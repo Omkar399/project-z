@@ -17,25 +17,14 @@ class AppDependencyContainer: ObservableObject {
     let slashCommandHandler: SlashCommandHandler
     
     // AI Services
-    let localAIService: LocalAIService
     let grokService: GrokService
     let audioRecorder: AudioRecorder
     let calendarService: CalendarService
     let mem0Service: Mem0Service
     
-    /// Currently selected AI service (persisted in UserDefaults)
-    @Published var selectedAIServiceType: AIServiceType = .local {
-        didSet {
-            UserDefaults.standard.set(selectedAIServiceType.rawValue, forKey: "SelectedAIService")
-        }
-    }
-    
-    /// Unified AI service access - returns the currently selected service
+    /// Unified AI service access - returns the single cloud AI service
     var aiService: any AIServiceProtocol {
-        switch selectedAIServiceType {
-        case .local: return localAIService
-        case .grok: return grokService
-        }
+        return grokService
     }
     
     // Data Layer
@@ -51,7 +40,6 @@ class AppDependencyContainer: ObservableObject {
         self.hotkeyManager = HotkeyManager()
         self.clippyController = ProjectZWindowController()
         self.audioRecorder = AudioRecorder()
-        self.localAIService = LocalAIService()
         self.grokService = GrokService(apiKey: UserDefaults.standard.string(forKey: "Grok_API_Key") ?? "")
         self.calendarService = CalendarService()
         self.textCaptureService = TextCaptureService()
@@ -83,8 +71,7 @@ class AppDependencyContainer: ObservableObject {
             clipboardMonitor.startMonitoring(
                 repository: repo,
                 contextEngine: contextEngine,
-                grokService: grokService,
-                localAIService: localAIService
+                grokService: grokService
             )
         }
         

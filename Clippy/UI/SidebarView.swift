@@ -17,7 +17,6 @@ enum NavigationCategory: String, CaseIterable, Identifiable {
 
 struct SidebarView: View {
     @Binding var selection: NavigationCategory?
-    @Binding var selectedAIService: AIServiceType
     @ObservedObject var clippyController: ProjectZWindowController
     @Binding var showSettings: Bool
     @Environment(\.modelContext) private var modelContext
@@ -53,31 +52,41 @@ struct SidebarView: View {
             
             // Bottom Panel
             VStack(spacing: 12) {
-                // AI Service
-                VStack(alignment: .leading, spacing: 6) {
+                // AI Service Settings Button
+                Button(action: { showSettings = true }) {
                     HStack {
-                        Text("AI")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary)
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 11))
+                        Text("Settings")
+                            .font(.system(size: 12))
                         Spacer()
-                        Button(action: { showSettings = true }) {
-                            Image(systemName: "gearshape")
-                                .font(.system(size: 11))
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
                     }
-                    
-                    Picker("", selection: $selectedAIService) {
-                        ForEach(AIServiceType.allCases, id: \.self) { service in
-                            Text(service.rawValue).tag(service)
+                    .foregroundColor(.secondary)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                
+                // Privacy Mode Toggle
+                HStack {
+                    Image(systemName: container.clipboardMonitor.isPrivacyMode ? "eye.slash.fill" : "eye.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(container.clipboardMonitor.isPrivacyMode ? .purple : .secondary)
+                    Text("Incognito")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { container.clipboardMonitor.isPrivacyMode },
+                        set: { _ in 
+                            container.clipboardMonitor.togglePrivacyMode()
+                            clippyController.setPrivacyMode(container.clipboardMonitor.isPrivacyMode)
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    ))
+                        .toggleStyle(.switch)
+                        .scaleEffect(0.7)
+                        .labelsHidden()
                 }
                 
-                // Assistant
+                // Assistant Toggle
                 HStack {
                     Image(systemName: "sparkles")
                         .font(.system(size: 11))
@@ -101,6 +110,7 @@ struct SidebarView: View {
                             KeyboardShortcutHint(keys: "⌥X", description: "Ask")
                             KeyboardShortcutHint(keys: "⌥V", description: "OCR")
                             KeyboardShortcutHint(keys: "⌥␣", description: "Voice")
+                            KeyboardShortcutHint(keys: "⇧Esc", description: "Incognito")
                         }
                         .padding(.top, 4)
                     }
@@ -266,11 +276,11 @@ struct GuardianSettingsView: View {
             // Guarded Contacts List
             if guardianService.guardedContacts.isEmpty {
                 Text("No guarded contacts")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .italic()
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, 8)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .italic()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 8)
             } else {
                 ForEach(guardianService.guardedContacts) { contact in
                     HStack {

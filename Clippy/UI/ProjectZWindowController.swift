@@ -49,11 +49,23 @@ class ProjectZWindowController: ObservableObject {
             // Update the view content with new state - VERTICAL LAYOUT (ProjectZ on top, bubble below)
             self.hostingController?.rootView = AnyView(
                 VStack(spacing: 8) {
-                    // ProjectZ GIF (no background - transparent, allows drag-through)
-                    ProjectZGifPlayer(gifName: gifName)
-                        .id(gifName)
-                        .frame(width: 80, height: 60)
-                        .allowsHitTesting(false) // Allow mouse events to pass through for window dragging
+                    // ProjectZ Visual
+                    ZStack {
+                        // Base GIF (no background - transparent, allows drag-through)
+                        ProjectZGifPlayer(gifName: gifName)
+                            .id(gifName)
+                            .frame(width: 80, height: 60)
+                            .allowsHitTesting(false) // Allow mouse events to pass through for window dragging
+                        
+                        // Incognito overlay (sunglasses or mask)
+                        if state == .incognito {
+                            Image(systemName: "sunglasses.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.black)
+                                .offset(y: -5)
+                                .shadow(radius: 2)
+                        }
+                    }
                     
                     // Message bubble (TRANSPARENT) - below ProjectZ
                     if !displayMessage.isEmpty || state == .thinking {
@@ -109,6 +121,20 @@ class ProjectZWindowController: ObservableObject {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     self.hide()
                 }
+            }
+        }
+    }
+    
+    // Convenience method for privacy toggling
+    func setPrivacyMode(_ isEnabled: Bool) {
+        if isEnabled {
+            setState(.incognito, message: "Incognito On 🕵️‍♂️")
+        } else {
+            // Hide or revert to idle depending on preference.
+            // For feedback, show a brief "Incognito Off" then hide.
+            setState(.idle, message: "Incognito Off 👁️")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.hide()
             }
         }
     }

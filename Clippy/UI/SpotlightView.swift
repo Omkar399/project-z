@@ -12,6 +12,7 @@ struct SpotlightView: View {
     @State private var isProcessing: Bool = false
     @State private var isVisible: Bool = false
     @State private var debugLog: [String] = []
+    @State private var showDebugLog: Bool = false
     @FocusState private var isInputFocused: Bool
     
     // Guardian mode
@@ -22,13 +23,24 @@ struct SpotlightView: View {
     @State private var showCommandSuggestions: Bool = false
     @State private var commandSuggestions: [SlashCommandHandler.CommandSuggestion] = []
     
+    // Theme
+    private let gradient = LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+    
     private var inputFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 12)
+        RoundedRectangle(cornerRadius: 16)
             .fill(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(isProcessing ? Color.blue.opacity(0.4) : Color.secondary.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: isProcessing ? [.blue, .purple] : [.white.opacity(0.2), .white.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isProcessing ? 1.5 : 1
+                    )
             )
+            .shadow(color: isProcessing ? .blue.opacity(0.2) : .clear, radius: 10, x: 0, y: 0)
     }
     
     private var commandSuggestionsView: some View {
@@ -39,228 +51,308 @@ struct SpotlightView: View {
                     showCommandSuggestions = false
                     handleQuery()
                 }) {
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Image(systemName: "terminal.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .frame(width: 20)
+                        
                         Text(suggestion.command)
                             .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.primary)
                         
                         Text(suggestion.description)
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
-                            .lineLimit(2)
+                            .lineLimit(1)
                         
                         Spacer()
+                        
+                        Image(systemName: "arrow.turn.down.left")
+                            .font(.caption2)
+                            .foregroundColor(.secondary.opacity(0.5))
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 12)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .background(Color.secondary.opacity(0.05))
+                .background(
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.03))
+                        .opacity(suggestion.id == commandSuggestions.first?.id ? 1 : 0) // Highlight first? No selection state yet
+                )
                 
                 if suggestion.id != commandSuggestions.last?.id {
                     Divider()
+                        .padding(.leading, 48)
                 }
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThickMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(Color.blue.opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .padding(.top, 8)
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
     
     var body: some View {
         VStack(spacing: 0) {
-            // Input field
-            HStack(spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
-                    .opacity(isProcessing ? 0.5 : 1.0)
-                    .scaleEffect(isProcessing ? 0.8 : 1.0)
-                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isProcessing)
+            // MARK: - Input Area
+            HStack(spacing: 16) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(gradient.opacity(0.1))
+                        .frame(width: 36, height: 36)
+                    
+                    Image(systemName: isProcessing ? "sparkles" : "magnifyingglass")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(gradient)
+                        .symbolEffect(.bounce, value: isProcessing)
+                }
                 
+                // Text Field
                 TextField("Ask anything...", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 18))
+                    .font(.system(size: 20, weight: .light))
                     .focused($isInputFocused)
                     .onSubmit {
                         handleQuery()
                     }
-                    .onChange(of: query) { newValue in
-                        updateCommandSuggestions(for: newValue)
+                    .onChange(of: query) {
+                        updateCommandSuggestions(for: query)
                     }
                     .disabled(isProcessing)
                 
-                if !query.isEmpty {
-                    Button(action: clearQuery) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                            .opacity(0.6)
+                // Trailing actions
+                HStack(spacing: 8) {
+                    if !query.isEmpty {
+                        Button(action: clearQuery) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.secondary)
+                                .opacity(0.6)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    
+                    // Debug toggle (subtle)
+                    Button(action: { withAnimation { showDebugLog.toggle() } }) {
+                        Image(systemName: "ladybug")
+                            .font(.system(size: 12))
+                            .foregroundColor(showDebugLog ? .orange : .secondary.opacity(0.3))
                     }
                     .buttonStyle(.plain)
-                    .transition(.scale.combined(with: .opacity))
+                    .help("Toggle Debug Log")
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .background(inputFieldBackground)
             
-            // Slash Command Autocomplete
+            // MARK: - Suggestions
             if showCommandSuggestions && !commandSuggestions.isEmpty {
                 commandSuggestionsView
             }
             
-            // Guardian Nudge - appears when a guarded contact is detected
+            // MARK: - Guardian Mode
             if isNudgeMode {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Image(systemName: "shield.lefthalf.filled")
-                            .font(.system(size: 24))
+                            .font(.title2)
                             .foregroundColor(.orange)
-                        Text("GUARDIAN MODE")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.orange)
+                            .symbolEffect(.pulse)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("GUARDIAN MODE")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.orange)
+                                .tracking(1)
+                            
+                            Text("Protected Contact Detected")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                        }
                     }
                     
                     Text(nudgeMessage)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
+                        .font(.body)
+                        .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 38)
                     
                     HStack {
+                        Spacer()
+                        Button("Dismiss") {
+                            dismissNudge()
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.secondary)
+                        
                         Button("I understand") {
                             dismissNudge()
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.orange)
-                        
-                        Spacer()
-                        
-                        Text("Press Esc to close")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(20)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.orange.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.orange.opacity(0.05))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .strokeBorder(Color.orange.opacity(0.5), lineWidth: 2)
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
                         )
                 )
                 .padding(.top, 16)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
             
-            // Response area - scrollable for long responses
+            // MARK: - Response Area
             if !response.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
-                    ScrollView {
+                    // Measuring content size with background GeometryReader if needed, 
+                    // or just letting ScrollView expand naturally within limits.
+                    // For dynamic resizing, we notify the controller of the content height.
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Header
+                        HStack {
+                            Image(systemName: "text.bubble.fill")
+                                .foregroundStyle(gradient)
+                            Text("Answer")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.bottom, 4)
+                        
+                        // Content
                         Text(response)
-                            .font(.system(size: 15))
-                            .foregroundColor(.white)
+                            .font(.system(size: 16, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineSpacing(6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .textSelection(.enabled)
-                            .padding(16)
                     }
-                    .frame(minHeight: 80, maxHeight: 400)
+                    .padding(20)
+                    .background(GeometryReader { geometry in
+                        Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
+                    })
                 }
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                        )
                 )
-                .padding(.top, 12)
-                .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                .padding(.top, 16)
+                .transition(.opacity.combined(with: .move(edge: .bottom).combined(with: .scale(scale: 0.98))))
                 .id(response.count) // Force refresh when response changes
             }
             
-            // Debug log area - always visible
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text("DEBUG LOG")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(.orange)
-                    Spacer()
-                    if isProcessing {
-                        ProgressView()
-                            .scaleEffect(0.6)
+            // MARK: - Debug Log
+            if showDebugLog {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("DEBUG LOG")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if isProcessing {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                        }
                     }
-                }
-                
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 4) {
-                            if debugLog.isEmpty {
-                                Text("Waiting for query...")
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .foregroundColor(.gray)
-                            } else {
-                                ForEach(Array(debugLog.enumerated()), id: \.offset) { index, log in
-                                    Text(log)
-                                        .font(.system(size: 12, design: .monospaced))
-                                        .foregroundColor(log.contains("❌") ? .red : log.contains("✅") ? .green : .white)
-                                        .id(index)
+                    .padding(.horizontal, 4)
+                    
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 4) {
+                                if debugLog.isEmpty {
+                                    Text("Waiting for query...")
+                                        .font(.system(size: 10, design: .monospaced))
+                                        .foregroundColor(.secondary.opacity(0.5))
+                                } else {
+                                    ForEach(Array(debugLog.enumerated()), id: \.offset) { index, log in
+                                        Text(log)
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundColor(log.contains("❌") ? .red : log.contains("✅") ? .green : .secondary)
+                                            .id(index)
+                                            .textSelection(.enabled)
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .onChange(of: debugLog.count) {
+                            if debugLog.count > 0 {
+                                withAnimation {
+                                    proxy.scrollTo(debugLog.count - 1, anchor: .bottom)
                                 }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .onChange(of: debugLog.count) { oldValue, newValue in
-                        if newValue > 0 {
-                            proxy.scrollTo(newValue - 1, anchor: .bottom)
-                        }
-                    }
+                    .frame(height: 120)
                 }
-                .frame(height: 150)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.black.opacity(0.5))
+                )
+                .padding(.top, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(.black.opacity(0.7))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(.orange.opacity(0.3), lineWidth: 1)
-                    )
-            )
-            .padding(.top, 12)
-            
         }
-        .padding(20)
-        .frame(width: 600)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: response)
+        .padding(24)
+        .frame(width: 680) // Fixed width
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThickMaterial)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.3), radius: 40, x: 0, y: 20)
-        .scaleEffect(isVisible ? 1.0 : 0.95)
-        .opacity(isVisible ? 1.0 : 0.0)
-        .onAppear {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isVisible = true
+            ZStack {
+                // Main frosted glass background
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.25), radius: 50, x: 0, y: 20)
+                
+                // Subtle gradient glow
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [.white.opacity(0.2), .clear, .white.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
             }
-            // Focus the input field with multiple attempts
+        )
+        .onPreferenceChange(ViewHeightKey.self) { height in
+            // Send height update to controller
+            updateWindowHeight(contentHeight: height)
+        }
+        // Ensure window is transparent
+        .onAppear {
+            isVisible = true
             isInputFocused = true
+            
+            // Force focus
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 isInputFocused = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                isInputFocused = true
-                print("🎯 [SpotlightView] Focus requested")
-            }
             
-            // Listen for Guardian nudges
+            // Guardian observer
             NotificationCenter.default.addObserver(
                 forName: NSNotification.Name("ShowGuardianNudge"),
                 object: nil,
@@ -271,37 +363,49 @@ struct SpotlightView: View {
                 }
             }
         }
+        .scaleEffect(isVisible ? 1.0 : 0.96)
+        .opacity(isVisible ? 1.0 : 0.0)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isVisible)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: response)
     }
     
     // MARK: - Actions
+    
+    private func updateWindowHeight(contentHeight: CGFloat) {
+        // Base height (input + padding) roughly calculated or fixed minimum
+        let baseHeight: CGFloat = 120 // Approximation of input area + padding
+        let totalHeight = baseHeight + contentHeight + 40 // + extra padding
+        
+        // Notify controller via NotificationCenter for decoupling
+        NotificationCenter.default.post(
+            name: NSNotification.Name("SpotlightHeightChanged"),
+            object: nil,
+            userInfo: ["height": totalHeight]
+        )
+    }
     
     private func handleQuery() {
         guard !query.isEmpty, !isProcessing else { return }
         
         let userQuery = query
         
-        // Check if it's a slash command
+        // Slash Command Check
         if userQuery.hasPrefix("/") {
             let slashHandler = container.slashCommandHandler
             let result = slashHandler.execute(userQuery)
             
-            // Show result
-            response = result.message
-            
-            // Clear input if requested
-            if result.shouldClearInput {
-                query = ""
+            withAnimation {
+                response = result.message
+                showCommandSuggestions = false
+                if result.shouldClearInput {
+                    query = ""
+                }
             }
-            
-            // Hide suggestions
-            showCommandSuggestions = false
-            
             return
         }
         
-        // Clear query but DON'T clear response yet (keep previous answer visible)
         query = ""
-        isProcessing = true
+        withAnimation { isProcessing = true }
         
         Task {
             await performQuery(userQuery)
@@ -313,10 +417,9 @@ struct SpotlightView: View {
         let logEntry = "[\(timestamp)] \(message)"
         print(logEntry)
         Task { @MainActor in
-            debugLog.append(logEntry)
-            // Keep only last 10 entries
-            if debugLog.count > 10 {
-                debugLog.removeFirst()
+            withAnimation {
+                debugLog.append(logEntry)
+                if debugLog.count > 20 { debugLog.removeFirst() }
             }
         }
     }
@@ -325,14 +428,12 @@ struct SpotlightView: View {
         await MainActor.run { debugLog = [] }
         log("🔍 Starting query: \(userQuery)")
         
-        // Perform vector search on clipboard history
         var clipboardContext: [RAGContextItem] = []
         
-        // Search using the vector database
+        // Search
         log("🔍 Searching clipboard...")
         let searchResults = await container.clippy.search(query: userQuery, limit: 5)
         let vectorIds = Set(searchResults.map { $0.0 })
-        log("🔍 Found \(vectorIds.count) vectors")
         
         if !vectorIds.isEmpty {
             // Filter items matching the search results
@@ -360,26 +461,18 @@ struct SpotlightView: View {
                     title: item.title
                 )
             }
-            log("🔍 Context: \(clipboardContext.count) items")
         }
         
-        // Search Mem0 for long-term memories
-        log("🧠 Searching Mem0 for relevant memories...")
-        var mem0Memories: [Mem0Service.Memory] = []
+        // Mem0
         if container.mem0Service.isAvailable {
-            mem0Memories = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
-            log("🧠 Found \(mem0Memories.count) Mem0 memories")
-        } else {
-            log("⚠️ Mem0 service not available")
+            _ = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
+            log("🧠 Mem0 search complete")
         }
         
-        // Send to Grok with agentic RAG + conversation history + Mem0 memories
-        log("🤖 Calling Grok API...")
+        // Grok Generation
+        log("🤖 Asking AI...")
         let conversationHistory = container.conversationManager.getFormattedHistory()
-        log("💬 Session history: \(conversationHistory.count) messages")
         
-        // For now, we'll pass Mem0 memories as part of the clipboard context
-        // TODO: Create a dedicated parameter for long-term memories
         let answer = await container.grokService.generateAnswer(
             question: userQuery,
             clipboardContext: clipboardContext,
@@ -387,118 +480,69 @@ struct SpotlightView: View {
             conversationHistory: conversationHistory
         )
         
-        if let answer = answer {
-            log("✅ Got response (\(answer.count) chars): \(answer.prefix(100))")
-        } else {
-            log("❌ Response is nil")
-        }
-        
-        // CRITICAL: Update on MainActor in a single transaction
         await MainActor.run {
-            // Set isProcessing false FIRST
             isProcessing = false
             
-            // Then update response
             if let answer = answer, !answer.isEmpty {
                 response = answer
-                log("✅ Response displayed!")
                 
-                // Save to conversation history (session memory)
+                // Save history
                 container.conversationManager.addMessage(role: "user", content: userQuery)
                 container.conversationManager.addMessage(role: "assistant", content: answer)
-                log("💬 Saved to session history")
                 
-                // Save to Mem0 (long-term memory) - extract facts
+                // Save to Mem0
                 if container.mem0Service.isAvailable {
                     Task {
                         let messages = [(role: "user", content: userQuery), (role: "assistant", content: answer)]
-                        let success = await container.mem0Service.addMemory(messages: messages)
-                        if success {
-                            log("🧠 Saved to Mem0 long-term memory")
-                        } else {
-                            log("⚠️ Failed to save to Mem0")
-                        }
+                        _ = await container.mem0Service.addMemory(messages: messages)
                     }
                 }
             } else {
-                let error = container.grokService.lastErrorMessage ?? "No response from Grok"
-                response = "Error: \(error)"
-                log("❌ Error: \(error)")
+                let error = container.grokService.lastErrorMessage ?? "No response"
+                response = "Could not generate an answer. \(error)"
             }
-            
-            log("📊 isProcessing=\(isProcessing), response.count=\(response.count)")
         }
     }
     
     private func clearQuery() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            query = ""
-        }
+        query = ""
     }
     
-    // MARK: - Guardian Mode
+    // MARK: - Guardian Helpers
     
     private func showNudge(message: String) {
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+        withAnimation {
             nudgeMessage = message
             isNudgeMode = true
         }
-        print("🛡️ [SpotlightView] Showing nudge: \(message)")
     }
     
     private func dismissNudge() {
-        withAnimation(.easeOut(duration: 0.2)) {
+        withAnimation {
             isNudgeMode = false
         }
-        // Reset Guardian so it can warn again if user comes back to this contact
         container.guardianService.resetLastWarnedContact()
-        print("🛡️ [SpotlightView] Nudge dismissed")
     }
-    
-    // MARK: - Slash Commands
     
     private func updateCommandSuggestions(for input: String) {
         if input.hasPrefix("/") {
             let suggestions = container.slashCommandHandler.getSuggestions(for: input)
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation {
                 commandSuggestions = suggestions
                 showCommandSuggestions = !suggestions.isEmpty
             }
         } else {
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation {
                 showCommandSuggestions = false
-                commandSuggestions = []
             }
         }
     }
 }
 
-// MARK: - Keyboard Hint Component
-
-struct KeyboardHint: View {
-    let key: String
-    let label: String
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(key)
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 3)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(.quaternary)
-                )
-            Text(label)
-        }
+// Preference Key for Height
+struct ViewHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
-
-// Preview
-#Preview {
-    SpotlightView()
-        .environmentObject(AppDependencyContainer())
-        .frame(width: 640, height: 200)
-        .background(Color.black.opacity(0.3))
-}
-

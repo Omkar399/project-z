@@ -8,13 +8,13 @@ import SwiftData
 class ClipboardMonitor: ObservableObject {
     @Published var clipboardContent: String = ""
     @Published var isMonitoring: Bool = false
+    @Published var isPrivacyMode: Bool = false // Privacy mode state
     
     private var timer: Timer?
     private var lastChangeCount: Int = 0
     private var repository: ClipboardRepository?
     private var contextEngine: ContextEngine?
     private var grokService: GrokService?
-    private var localAIService: LocalAIService?
     
     // MARK: - Computed Properties (delegated to ContextEngine)
     
@@ -34,13 +34,11 @@ class ClipboardMonitor: ObservableObject {
     func startMonitoring(
         repository: ClipboardRepository,
         contextEngine: ContextEngine,
-        grokService: GrokService? = nil,
-        localAIService: LocalAIService? = nil
+        grokService: GrokService? = nil
     ) {
         self.repository = repository
         self.contextEngine = contextEngine
         self.grokService = grokService
-        self.localAIService = localAIService
         
         // Initialize lastChangeCount to avoid processing existing content
         let pasteboard = NSPasteboard.general
@@ -79,9 +77,28 @@ class ClipboardMonitor: ObservableObject {
         contextEngine?.getRichContext(clipboardContent: clipboardContent) ?? ""
     }
     
+    func togglePrivacyMode() {
+        isPrivacyMode.toggle()
+        print("🕵️‍♂️ [ClipboardMonitor] Privacy Mode: \(isPrivacyMode ? "ON" : "OFF")")
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: NSNotification.Name("PrivacyModeChanged"),
+            object: nil,
+            userInfo: ["isEnabled": isPrivacyMode]
+        )
+    }
+    
     // MARK: - Clipboard Detection
     
     private func checkClipboard() {
+        // If Privacy Mode is active, skip all processing
+        if isPrivacyMode {
+            // Update lastChangeCount so we don't process this content even after turning off privacy mode
+            let pasteboard = NSPasteboard.general
+            lastChangeCount = pasteboard.changeCount
+            return
+        }
+        
         let pasteboard = NSPasteboard.general
         let currentChangeCount = pasteboard.changeCount
         
@@ -158,26 +175,17 @@ class ClipboardMonitor: ObservableObject {
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             
-            var title: String?
+            let title: String? = nil
             var description: String = "[Image]"
             
-            if let localService = await self.localAIService {
-                let base64Image = pngData.base64EncodedString()
-                if let localDesc = await localService.generateVisionDescription(base64Image: base64Image, screenText: nil) {
-                    description = localDesc
-                    if localDesc.contains("Title:") {
-                        let lines = localDesc.split(separator: "\n")
-                        if let titleLine = lines.first(where: { $0.hasPrefix("Title:") }) {
-                            title = String(titleLine.dropFirst(6)).trimmingCharacters(in: .whitespaces)
-                        }
-                    }
-                }
-            } else if let grok = await self.grokService {
+            if let grok = await self.grokService {
                 description = await grok.analyzeImage(imageData: pngData) ?? "[Image]"
             }
             
+            let finalDescription = description
+            
             await MainActor.run {
-                item.content = description
+                item.content = finalDescription
                 item.title = title
             }
             
@@ -199,7 +207,7 @@ class ClipboardMonitor: ObservableObject {
         if trimmedContent.isEmpty || trimmedContent.count < 3 { return }
         
         // Filter debug content
-        let debugPatterns = ["⌨️", "🎯", "✅", "❌", "📤", "📡", "📄", "💾", "🏷️", "🤖", "🛑", "🔄"]
+        let debugPatterns = ["⌨️", "🎯", "✅", "❌", "📤", "📡", "📄", "💾", "🏷️", "🤖", "🛑", "🔄", "🕵️‍♂️"]
         let logPatterns = ["[HotkeyManager]", "[ContentView]", "[TextCaptureService]", "[GeminiService]", "[ClipboardMonitor]", "[EmbeddingService]"]
         if debugPatterns.contains(where: { trimmedContent.contains($0) }) || logPatterns.contains(where: { trimmedContent.contains($0) }) {
             return
@@ -244,22 +252,19 @@ class ClipboardMonitor: ObservableObject {
             
             var tags: [String] = []
             
-            if let localService = await self.localAIService {
-                tags = await Task { @MainActor in
-                    await localService.generateTags(content: content, appName: appName, context: nil)
-                }.value
-            } else if let grok = await self.grokService {
+            if let grok = await self.grokService {
                 tags = await Task { @MainActor in
                     await grok.generateTags(content: content, appName: appName, context: nil)
                 }.value
             }
             
             if !tags.isEmpty, let repo = await self.repository {
+                let finalTags = tags
                 await MainActor.run {
-                    item.tags = tags
+                    item.tags = finalTags
                     Task {
                         try? await repo.updateItem(item)
-                        print("   🏷️ Tags updated: \(tags)")
+                        print("   🏷️ Tags updated: \(finalTags)")
                     }
                 }
             }

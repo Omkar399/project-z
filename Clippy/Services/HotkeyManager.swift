@@ -13,13 +13,22 @@ class HotkeyManager: ObservableObject {
     private var onTextCaptureTrigger: (() -> Void)?
     private var onVoiceCaptureTrigger: (() -> Void)?
     private var onSpotlightTrigger: (() -> Void)?
+    private var onPrivacyModeTrigger: (() -> Void)?
     
-    func startListening(onTrigger: @escaping () -> Void, onVisionTrigger: @escaping () -> Void, onTextCaptureTrigger: @escaping () -> Void, onVoiceCaptureTrigger: @escaping () -> Void, onSpotlightTrigger: @escaping () -> Void) {
+    func startListening(
+        onTrigger: @escaping () -> Void,
+        onVisionTrigger: @escaping () -> Void,
+        onTextCaptureTrigger: @escaping () -> Void,
+        onVoiceCaptureTrigger: @escaping () -> Void,
+        onSpotlightTrigger: @escaping () -> Void,
+        onPrivacyModeTrigger: @escaping () -> Void
+    ) {
         self.onTrigger = onTrigger
         self.onVisionTrigger = onVisionTrigger
         self.onTextCaptureTrigger = onTextCaptureTrigger
         self.onVoiceCaptureTrigger = onVoiceCaptureTrigger
         self.onSpotlightTrigger = onSpotlightTrigger
+        self.onPrivacyModeTrigger = onPrivacyModeTrigger
         
         let eventMask = (1 << CGEventType.keyDown.rawValue)
         
@@ -73,11 +82,19 @@ class HotkeyManager: ObservableObject {
                     return nil // Consume event
                 }
                 
-                // Check for Option+S (legacy suggestions - kept for compatibility)
-                // S key code is 1.
-                // We need to be careful not to swallow valid shortcuts if other modifiers are pressed.
-                // But here we only check for .maskAlternate (Option key).
+                // Check for Shift+Esc (Privacy Mode Toggle)
+                if event.flags.contains(.maskShift) && event.getIntegerValueField(.keyboardEventKeycode) == 53 { // 53 = Esc
+                    print("🕵️‍♂️ [HotkeyManager] Shift+Esc detected (Privacy Mode)!")
+                    DispatchQueue.main.async {
+                        manager.onPrivacyModeTrigger?()
+                    }
+                    // Do NOT consume Shift+Esc as it might be used by system, 
+                    // but for global toggle we usually want to. 
+                    // Let's consume it to prevent accidental cancels.
+                    return nil
+                }
                 
+                // Check for Option+S (legacy suggestions - kept for compatibility)
                 if event.flags.contains(.maskAlternate) && event.getIntegerValueField(.keyboardEventKeycode) == 1 { // 1 = S
                     print("⌨️ [HotkeyManager] Option+S detected!")
                     DispatchQueue.main.async {
@@ -113,5 +130,3 @@ class HotkeyManager: ObservableObject {
         isListening = false
     }
 }
-
-
