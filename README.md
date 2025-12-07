@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Clippy/Resources/clippy-writing.gif" alt="Project Z - Clippy Writing" width="200" />
+<img src="can-you-make-a-circle-like-siri.svg" alt="Project Z - Siri-like Circle" width="200" />
 
 <img src="https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=128" alt="Project Z Logo" />
 
