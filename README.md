@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="can-you-make-a-circle-like-siri.gif" alt="Project Z" width="200" />
+<img src="can-you-make-a-circle-like-siri.gif" alt="Project Z" width="400" />
 
 # <img src="https://img.icons8.com/?id=ESeqfDjC5eVO&format=png&size=48" valign="middle" /> Project Z
 ### The Memory-Augmented OS Copilot
