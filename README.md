@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📎 Clippy - AI-Powered Clipboard Manager
+# ⚡️ Project Z - Your AI-Powered Personal Assistant
 
 [![Production Ready](https://img.shields.io/badge/status-production--ready-success?style=for-the-badge&logo=checkmarx&logoColor=white)](https://github.com/yhinai/clippy)
 [![macOS](https://img.shields.io/badge/macOS-15.0+-000000?style=for-the-badge&logo=apple&logoColor=white)](https://www.apple.com/macos/)
@@ -46,7 +46,7 @@
 
 ## Overview
 
-**Clippy** brings back the beloved Microsoft Office assistant into the modern age with AI-powered intelligence! This isn't just another clipboard manager—it's your smart companion that understands context, learns from your workflow, and magically finds exactly what you need from your clipboard history.
+**Project Z** is your AI-powered personal assistant with true memory! It combines clipboard intelligence, calendar awareness, and guardian mode to become your Jarvis-like companion. With session memory and long-term learning via Mem0, Project Z remembers your preferences and provides contextual help across all your work.
 
 ### 🎬 Demo Video
 

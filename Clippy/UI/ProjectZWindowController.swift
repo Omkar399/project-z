@@ -3,59 +3,59 @@ import AppKit
 import ApplicationServices
 import ImageIO
 
-class ClippyWindowController: ObservableObject {
+class ProjectZWindowController: ObservableObject {
     private var window: NSWindow?
     private var hostingController: NSHostingController<AnyView>?
     private var animationResetID = UUID()
     @Published var isVisible = false
     @Published var followTextInput = true // New property to enable/disable text input following
-    @Published var currentState: ClippyAnimationState = .idle // Current animation state
+    @Published var currentState: ProjectZAnimationState = .idle // Current animation state
     private var escapeKeyMonitor: Any? // Monitor for ESC key presses
     
     // MARK: - Position Persistence
     /// User's manually set position (saved to UserDefaults)
     private var savedPosition: NSPoint? {
         get {
-            let x = UserDefaults.standard.double(forKey: "ClippyWindowX")
-            let y = UserDefaults.standard.double(forKey: "ClippyWindowY")
+            let x = UserDefaults.standard.double(forKey: "ProjectZWindowX")
+            let y = UserDefaults.standard.double(forKey: "ProjectZWindowY")
             // Return nil if never saved (both will be 0)
             if x == 0 && y == 0 { return nil }
             return NSPoint(x: x, y: y)
         }
         set {
             if let point = newValue {
-                UserDefaults.standard.set(point.x, forKey: "ClippyWindowX")
-                UserDefaults.standard.set(point.y, forKey: "ClippyWindowY")
+                UserDefaults.standard.set(point.x, forKey: "ProjectZWindowX")
+                UserDefaults.standard.set(point.y, forKey: "ProjectZWindowY")
             }
         }
     }
     private var hasUserDraggedWindow = false
     
     /// Set the current animation state and update the display
-    func setState(_ state: ClippyAnimationState, message: String? = nil) {
+    func setState(_ state: ProjectZAnimationState, message: String? = nil) {
         DispatchQueue.main.async {
             self.currentState = state
             let displayMessage = message ?? state.defaultMessage
             let gifName = state.gifFileName
             
-            print("📎 [ClippyWindowController] Setting state to \(state) with GIF: \(gifName)")
+            print("📎 [ProjectZWindowController] Setting state to \(state) with GIF: \(gifName)")
             
             // Create window if needed
             if self.window == nil {
-                print("📎 [ClippyWindowController] Creating new window")
+                print("📎 [ProjectZWindowController] Creating new window")
                 self.createWindow()
             }
             
-            // Update the view content with new state - VERTICAL LAYOUT (Clippy on top, bubble below)
+            // Update the view content with new state - VERTICAL LAYOUT (ProjectZ on top, bubble below)
             self.hostingController?.rootView = AnyView(
                 VStack(spacing: 8) {
-                    // Clippy GIF (no background - transparent, allows drag-through)
-                    ClippyGifPlayer(gifName: gifName)
+                    // ProjectZ GIF (no background - transparent, allows drag-through)
+                    ProjectZGifPlayer(gifName: gifName)
                         .id(gifName)
                         .frame(width: 80, height: 60)
                         .allowsHitTesting(false) // Allow mouse events to pass through for window dragging
                     
-                    // Message bubble (TRANSPARENT) - below Clippy
+                    // Message bubble (TRANSPARENT) - below ProjectZ
                     if !displayMessage.isEmpty || state == .thinking {
                         HStack(spacing: 8) {
                             if state == .thinking {
@@ -85,7 +85,7 @@ class ClippyWindowController: ObservableObject {
                 if let savedPos = self.savedPosition {
                     // Use the user's saved position
                     self.window?.setFrameOrigin(savedPos)
-                    print("📎 [ClippyWindowController] Restored saved position: \(savedPos)")
+                    print("📎 [ProjectZWindowController] Restored saved position: \(savedPos)")
                 } else if self.followTextInput {
                     self.positionNearActiveTextInput()
                 } else {
@@ -99,7 +99,7 @@ class ClippyWindowController: ObservableObject {
             self.window?.orderFrontRegardless()
             self.isVisible = true
             
-            print("📎 [ClippyWindowController] Window positioned and visible")
+            print("📎 [ProjectZWindowController] Window positioned and visible")
             
             // Start monitoring for ESC key when window is shown
             self.startEscapeKeyMonitoring()
@@ -135,7 +135,7 @@ class ClippyWindowController: ObservableObject {
         hostingController?.view.wantsLayer = true
         hostingController?.view.layer?.backgroundColor = NSColor.clear.cgColor
         
-        // Create the window (sized for 124x93 Clippy animation)
+        // Create the window (sized for 124x93 ProjectZ animation)
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 124, height: 93),
             styleMask: [.borderless],
@@ -175,7 +175,7 @@ class ClippyWindowController: ObservableObject {
             object: window
         )
         
-        print("📎 [ClippyWindowController] Window created and ready")
+        print("📎 [ProjectZWindowController] Window created and ready")
     }
     
     /// Called when the user drags the window
@@ -183,18 +183,18 @@ class ClippyWindowController: ObservableObject {
         guard let window = window else { return }
         savedPosition = window.frame.origin
         hasUserDraggedWindow = true
-        print("📎 [ClippyWindowController] User moved window to: \(window.frame.origin)")
+        print("📎 [ProjectZWindowController] User moved window to: \(window.frame.origin)")
     }
     
     /// Reset to auto-positioning (clears saved position)
     func resetPosition() {
-        UserDefaults.standard.removeObject(forKey: "ClippyWindowX")
-        UserDefaults.standard.removeObject(forKey: "ClippyWindowY")
+        UserDefaults.standard.removeObject(forKey: "ProjectZWindowX")
+        UserDefaults.standard.removeObject(forKey: "ProjectZWindowY")
         hasUserDraggedWindow = false
         if let window = window {
             positionWindowCentered(window)
         }
-        print("📎 [ClippyWindowController] Position reset to default")
+        print("📎 [ProjectZWindowController] Position reset to default")
     }
     
     // MARK: - Public Methods
@@ -202,7 +202,7 @@ class ClippyWindowController: ObservableObject {
     /// Toggle whether the clippy follows the active text input
     func setFollowTextInput(_ enabled: Bool) {
         followTextInput = enabled
-        print("🐕 [ClippyWindowController] Text input following: \(enabled ? "enabled" : "disabled")")
+        print("🐕 [ProjectZWindowController] Text input following: \(enabled ? "enabled" : "disabled")")
     }
     
     /// Manually reposition the clippy near the current text input (if following is enabled)
@@ -228,12 +228,12 @@ class ClippyWindowController: ObservableObject {
     /// Get the frame (position and size) of the currently focused text input element
     private func getActiveTextInputFrame() -> NSRect? {
         guard AXIsProcessTrusted() else {
-            print("⚠️ [ClippyWindowController] Accessibility permission not granted")
+            print("⚠️ [ProjectZWindowController] Accessibility permission not granted")
             return nil
         }
         
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
-            print("⚠️ [ClippyWindowController] No frontmost application")
+            print("⚠️ [ProjectZWindowController] No frontmost application")
             return nil
         }
         
@@ -242,7 +242,7 @@ class ClippyWindowController: ObservableObject {
         let result = AXUIElementCopyAttributeValue(appElement, kAXFocusedUIElementAttribute as CFString, &focusedElementRef)
         
         guard result == AXError.success, let focusedElement = focusedElementRef else {
-            print("⚠️ [ClippyWindowController] Unable to locate focused UI element")
+            print("⚠️ [ProjectZWindowController] Unable to locate focused UI element")
             return nil
         }
         
@@ -250,25 +250,25 @@ class ClippyWindowController: ObservableObject {
         
         // Check if the focused element is a text input (text field, text area, etc.)
         if !isTextInputElement(focusedUIElement) {
-            print("ℹ️ [ClippyWindowController] Focused element is not a text input")
+            print("ℹ️ [ProjectZWindowController] Focused element is not a text input")
             return nil
         }
         
         // Try to get the exact caret position first
         if let caretFrame = getCaretPosition(focusedUIElement) {
-            print("✅ [ClippyWindowController] Found caret at: \(caretFrame)")
+            print("✅ [ProjectZWindowController] Found caret at: \(caretFrame)")
             return caretFrame
         }
         
         // Fallback to text field bounds if caret position is not available
         guard let position = getElementPosition(focusedUIElement),
               let size = getElementSize(focusedUIElement) else {
-            print("⚠️ [ClippyWindowController] Unable to get text input position/size")
+            print("⚠️ [ProjectZWindowController] Unable to get text input position/size")
             return nil
         }
         
         let frame = NSRect(x: position.x, y: position.y, width: size.width, height: size.height)
-        print("✅ [ClippyWindowController] Found text input at: \(frame) (fallback to field bounds)")
+        print("✅ [ProjectZWindowController] Found text input at: \(frame) (fallback to field bounds)")
         return frame
     }
     
@@ -326,7 +326,7 @@ class ClippyWindowController: ObservableObject {
         let rangeResult = AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &selectedRangeRef)
         
         guard rangeResult == AXError.success, let selectedRangeValue = selectedRangeRef else {
-            print("⚠️ [ClippyWindowController] Unable to get selected text range")
+            print("⚠️ [ProjectZWindowController] Unable to get selected text range")
             return nil
         }
         
@@ -340,7 +340,7 @@ class ClippyWindowController: ObservableObject {
         )
         
         guard boundsResult == AXError.success, let caretBoundsValue = caretBoundsRef else {
-            print("⚠️ [ClippyWindowController] Unable to get caret bounds")
+            print("⚠️ [ProjectZWindowController] Unable to get caret bounds")
             return nil
         }
         
@@ -351,7 +351,7 @@ class ClippyWindowController: ObservableObject {
             // Convert CGRect to NSRect and return
             return NSRect(x: caretBounds.origin.x, y: caretBounds.origin.y, width: max(caretBounds.width, 2), height: caretBounds.height)
         } else {
-            print("⚠️ [ClippyWindowController] Failed to extract caret bounds from AXValue")
+            print("⚠️ [ProjectZWindowController] Failed to extract caret bounds from AXValue")
             return nil
         }
     }
@@ -381,7 +381,7 @@ class ClippyWindowController: ObservableObject {
         let newOrigin = NSPoint(x: x, y: y)
         window.setFrameOrigin(newOrigin)
         
-        print("🐕 [ClippyWindowController] Positioned clippy in top-right at: \(newOrigin)")
+        print("🐕 [ProjectZWindowController] Positioned clippy in top-right at: \(newOrigin)")
     }
     
     // MARK: - ESC Key Monitoring
@@ -394,12 +394,12 @@ class ClippyWindowController: ObservableObject {
         escapeKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             // Check if ESC key was pressed (keyCode 53)
             if event.keyCode == 53 {
-                print("🐕 [ClippyWindowController] ESC key pressed - hiding clippy")
+                print("🐕 [ProjectZWindowController] ESC key pressed - hiding clippy")
                 self?.hide()
             }
         }
         
-        print("🐕 [ClippyWindowController] Started ESC key monitoring")
+        print("🐕 [ProjectZWindowController] Started ESC key monitoring")
     }
     
     /// Stop monitoring for ESC key presses
@@ -407,7 +407,7 @@ class ClippyWindowController: ObservableObject {
         if let monitor = escapeKeyMonitor {
             NSEvent.removeMonitor(monitor)
             escapeKeyMonitor = nil
-            print("🐕 [ClippyWindowController] Stopped ESC key monitoring")
+            print("🐕 [ProjectZWindowController] Stopped ESC key monitoring")
         }
 
         // Reset animation when dismissing the clippy so it restarts next time it's shown
@@ -420,7 +420,7 @@ class ClippyWindowController: ObservableObject {
     }
 }
 
-// MARK: - Clippy GIF Player
+// MARK: - ProjectZ GIF Player
 
 /// Custom NSImageView that ignores mouse events (allows window dragging)
 class DraggableImageView: NSImageView {
@@ -429,7 +429,7 @@ class DraggableImageView: NSImageView {
     }
 }
 
-struct ClippyGifPlayer: NSViewRepresentable {
+struct ProjectZGifPlayer: NSViewRepresentable {
     let gifName: String
     
     func makeNSView(context: Context) -> DraggableImageView {
@@ -445,7 +445,7 @@ struct ClippyGifPlayer: NSViewRepresentable {
                 nsView.image = image
                 nsView.animates = true
             }
-        } else if let url = Bundle.main.url(forResource: "ClippyGifs/\(gifName)", withExtension: "gif") {
+        } else if let url = Bundle.main.url(forResource: "ProjectZGifs/\(gifName)", withExtension: "gif") {
             if let image = NSImage(contentsOf: url) {
                 nsView.image = image
                 nsView.animates = true

@@ -1,6 +1,6 @@
 //
 //  SlashCommandHandler.swift
-//  Clippy
+//  ProjectZ
 //
 //  Handles instant slash commands (no Grok API calls)
 //
@@ -57,7 +57,7 @@ class SlashCommandHandler {
             
             Command(
                 name: "memories",
-                description: "Show what Clippy remembers about you",
+                description: "Show what ProjectZ remembers about you",
                 aliases: ["memory", "remember"]
             ) { [weak self] in
                 guard let self = self else {

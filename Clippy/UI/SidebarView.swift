@@ -18,7 +18,7 @@ enum NavigationCategory: String, CaseIterable, Identifiable {
 struct SidebarView: View {
     @Binding var selection: NavigationCategory?
     @Binding var selectedAIService: AIServiceType
-    @ObservedObject var clippyController: ClippyWindowController
+    @ObservedObject var clippyController: ProjectZWindowController
     @Binding var showSettings: Bool
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var container: AppDependencyContainer

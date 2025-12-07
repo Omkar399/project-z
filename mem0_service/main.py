@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Mem0 Service - Long-term memory for Clippy
+Mem0 Service - Long-term memory for ProjectZ
 Provides REST API for storing and retrieving memories using Mem0
 """
 
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Clippy Mem0 Service",
-    description="Long-term memory service for Clippy AI assistant",
+    title="ProjectZ Mem0 Service",
+    description="Long-term memory service for ProjectZ AI assistant",
     version="1.0.0"
 )
 
@@ -99,7 +99,7 @@ class MemoryResponse(BaseModel):
 async def root():
     """Health check endpoint"""
     return {
-        "service": "Clippy Mem0 Service",
+        "service": "ProjectZ Mem0 Service",
         "status": "running" if memory else "error",
         "version": "1.0.0"
     }

@@ -107,7 +107,7 @@ class ClipboardMonitor: ObservableObject {
     
     private func getImagesDirectory() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let imagesDir = appSupport.appendingPathComponent("Clippy/Images")
+        let imagesDir = appSupport.appendingPathComponent("ProjectZ/Images")
         try? FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
         return imagesDir
     }
@@ -288,7 +288,7 @@ class ClipboardService {
     
     func getImagesDirectory() -> URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return appSupport.appendingPathComponent("Clippy/Images")
+        return appSupport.appendingPathComponent("ProjectZ/Images")
     }
     
     func loadImage(from path: String) -> NSImage? {

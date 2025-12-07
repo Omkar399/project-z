@@ -1,6 +1,6 @@
 //
 //  ConversationManager.swift
-//  Clippy
+//  ProjectZ
 //
 //  Manages conversation history for session continuity
 //

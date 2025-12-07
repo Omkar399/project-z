@@ -29,10 +29,10 @@ final class Item {
     }
 }
 
-// MARK: - Clippy Animation State
+// MARK: - ProjectZ Animation State
 
-/// Represents the different animation states for the Clippy character
-enum ClippyAnimationState {
+/// Represents the different animation states for the ProjectZ character
+enum ProjectZAnimationState {
     case idle      // User pressed Option+X, waiting for input
     case writing   // User is typing text
     case thinking  // AI is processing the query (minimum 3 seconds)

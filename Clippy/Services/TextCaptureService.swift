@@ -9,11 +9,11 @@ class TextCaptureService: ObservableObject {
     @Published var captureStartTime: Date?
     
     // Dependencies
-    private var clippyController: ClippyWindowController?
+    private var clippyController: ProjectZWindowController?
     private var clipboardMonitor: ClipboardMonitor?
     
     // Initialization of dependencies
-    func setDependencies(clippyController: ClippyWindowController, clipboardMonitor: ClipboardMonitor) {
+    func setDependencies(clippyController: ProjectZWindowController, clipboardMonitor: ClipboardMonitor) {
         self.clippyController = clippyController
         self.clipboardMonitor = clipboardMonitor
     }

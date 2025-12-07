@@ -24,9 +24,9 @@ protocol ClipboardRepository {
 @MainActor
 class SwiftDataClipboardRepository: ClipboardRepository {
     private let modelContext: ModelContext
-    private let vectorService: Clippy // The vector DB service
+    private let vectorService: ProjectZ // The vector DB service
     
-    init(modelContext: ModelContext, vectorService: Clippy) {
+    init(modelContext: ModelContext, vectorService: ProjectZ) {
         self.modelContext = modelContext
         self.vectorService = vectorService
     }
@@ -93,7 +93,7 @@ class SwiftDataClipboardRepository: ClipboardRepository {
         if let vectorId = item.vectorId {
             let embeddingText = (item.title != nil && !item.title!.isEmpty) ? "\(item.title!)\n\n\(item.content)" : item.content
             
-             // Clippy.addDocument overwrites if ID exists (upsert)
+             // ProjectZ.addDocument overwrites if ID exists (upsert)
             await vectorService.addDocument(vectorId: vectorId, text: embeddingText)
             print("💾 [Repository] Updated item and re-indexed vector: \(item.title ?? "Untitled")")
         }

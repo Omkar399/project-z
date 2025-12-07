@@ -142,7 +142,7 @@ class GeminiService: ObservableObject, AIServiceProtocol {
         }
         
         let prompt = """
-        You are a Clippy assistant. Answer the user's question based on their clipboard history.
+        You are a ProjectZ assistant. Answer the user's question based on their clipboard history.
         
         User Question: \(question)
         

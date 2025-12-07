@@ -1,6 +1,6 @@
 //
 //  Mem0Service.swift
-//  Clippy
+//  ProjectZ
 //
 //  HTTP client for Mem0 long-term memory service
 //

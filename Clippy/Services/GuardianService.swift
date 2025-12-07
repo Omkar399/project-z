@@ -1,6 +1,6 @@
 //
 //  GuardianService.swift
-//  Clippy
+//  ProjectZ
 //
 //  Guardian mode - monitors for messaging guarded contacts
 //

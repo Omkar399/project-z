@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Clippy Build & Run Script
+# ProjectZ Build & Run Script
 # Usage: ./run.sh [-d|--debug]
 
 # Parse arguments
@@ -13,7 +13,7 @@ for arg in "$@"; do
 done
 
 # Kill existing processes
-killall -9 Clippy 2>/dev/null
+killall -9 ProjectZ 2>/dev/null
 pkill -f "mem0_service/main.py" 2>/dev/null
 
 # Start Mem0 Service
@@ -56,11 +56,11 @@ else
     cd ..
 fi
 
-echo "🔨 Building Clippy..."
+echo "🔨 Building ProjectZ..."
 
 # Build
 xcodebuild -project Clippy.xcodeproj \
-           -scheme Clippy \
+           -scheme ProjectZ \
            -destination 'platform=macOS,arch=arm64' \
            -configuration Debug \
            CODE_SIGN_IDENTITY="" \
@@ -76,7 +76,7 @@ fi
 echo "✅ Build succeeded"
 
 # Get app path
-BUILD_SETTINGS=$(xcodebuild -project Clippy.xcodeproj -scheme Clippy -showBuildSettings -configuration Debug 2>/dev/null)
+BUILD_SETTINGS=$(xcodebuild -project Clippy.xcodeproj -scheme ProjectZ -showBuildSettings -configuration Debug 2>/dev/null)
 TARGET_BUILD_DIR=$(echo "$BUILD_SETTINGS" | grep " TARGET_BUILD_DIR =" | cut -d "=" -f 2 | xargs)
 FULL_PRODUCT_NAME=$(echo "$BUILD_SETTINGS" | grep " FULL_PRODUCT_NAME =" | cut -d "=" -f 2 | xargs)
 APP_PATH="$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME"

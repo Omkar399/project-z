@@ -4,13 +4,13 @@ import SwiftData
 @MainActor
 class AppDependencyContainer: ObservableObject {
     // Core Services
-    let clippy: Clippy
+    let clippy: ProjectZ
     let clipboardMonitor: ClipboardMonitor
     let contextEngine: ContextEngine
     let visionParser: VisionScreenParser
     let hotkeyManager: HotkeyManager
     let textCaptureService: TextCaptureService
-    let clippyController: ClippyWindowController
+    let clippyController: ProjectZWindowController
     var spotlightController: SpotlightWindowController!
     let guardianService: GuardianService
     let conversationManager: ConversationManager
@@ -45,11 +45,11 @@ class AppDependencyContainer: ObservableObject {
         print("🏗️ [AppDependencyContainer] Initializing services...")
         
         // 1. Initialize Independent Services
-        self.clippy = Clippy()
+        self.clippy = ProjectZ()
         self.contextEngine = ContextEngine()
         self.visionParser = VisionScreenParser()
         self.hotkeyManager = HotkeyManager()
-        self.clippyController = ClippyWindowController()
+        self.clippyController = ProjectZWindowController()
         self.audioRecorder = AudioRecorder()
         self.localAIService = LocalAIService()
         self.grokService = GrokService(apiKey: UserDefaults.standard.string(forKey: "Grok_API_Key") ?? "")

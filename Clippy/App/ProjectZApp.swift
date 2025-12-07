@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 @main
-struct ClippyApp: App {
+struct ProjectZApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,

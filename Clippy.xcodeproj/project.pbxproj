@@ -14,7 +14,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		7C1ADD162E962B920014E10D /* Clippy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clippy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C1ADD162E962B920014E10D /* ProjectZ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProjectZ.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -49,19 +49,19 @@
 			sourceTree = "<group>";
 		};
 		7C1ADD172E962B920014E10D /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				7C1ADD162E962B920014E10D /* Clippy.app */,
-			);
-			name = Products;
+		isa = PBXGroup;
+		children = (
+			7C1ADD162E962B920014E10D /* ProjectZ.app */,
+		);
+		name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		7C1ADD152E962B920014E10D /* Clippy */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "Clippy" */;
+	7C1ADD152E962B920014E10D /* ProjectZ */ = {
+		isa = PBXNativeTarget;
+		buildConfigurationList = 7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "ProjectZ" */;
 			buildPhases = (
 				7C1ADD122E962B920014E10D /* Sources */,
 				7C1ADD132E962B920014E10D /* Frameworks */,
@@ -71,18 +71,18 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				7C1ADD182E962B920014E10D /* Clippy */,
-			);
-			name = Clippy;
+		fileSystemSynchronizedGroups = (
+			7C1ADD182E962B920014E10D /* Clippy */,
+		);
+		name = ProjectZ;
 			packageProductDependencies = (
 				7CD28A0E2E9651760075A000 /* VecturaKit */,
 				7CD28A102E9651760075A000 /* VecturaMLXKit */,
 				7CMLX00022E9700000000001 /* MLXLLM */,
 				7CMLX00042E9700000000001 /* MLXLMCommon */,
 			);
-			productName = Clippy;
-			productReference = 7C1ADD162E962B920014E10D /* Clippy.app */;
+		productName = ProjectZ;
+		productReference = 7C1ADD162E962B920014E10D /* ProjectZ.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -116,10 +116,10 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7C1ADD172E962B920014E10D /* Products */;
 			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				7C1ADD152E962B920014E10D /* Clippy */,
-			);
+		projectRoot = "";
+		targets = (
+			7C1ADD152E962B920014E10D /* ProjectZ */,
+		);
 		};
 /* End PBXProject section */
 
@@ -287,7 +287,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = altic.Clippy;
+				PRODUCT_BUNDLE_IDENTIFIER = altic.ProjectZ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -315,7 +315,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = altic.Clippy;
+				PRODUCT_BUNDLE_IDENTIFIER = altic.ProjectZ;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -325,7 +325,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		7C1ADD112E962B920014E10D /* Build configuration list for PBXProject "Clippy" */ = {
+		7C1ADD112E962B920014E10D /* Build configuration list for PBXProject "ProjectZ" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7C1ADD222E962B930014E10D /* Debug */,
@@ -334,7 +334,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "Clippy" */ = {
+		7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "ProjectZ" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				7C1ADD252E962B930014E10D /* Debug */,

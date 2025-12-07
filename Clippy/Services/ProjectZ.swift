@@ -5,14 +5,14 @@ import VecturaKit
 import MLXEmbedders
 
 @MainActor
-class Clippy: ObservableObject {
+class ProjectZ: ObservableObject {
     @Published var isInitialized = false
     @Published var statusMessage = "Initializing embedding service..."
     
     private var vectorDB: VecturaMLXKit?
     
     func initialize() async {
-        print("🚀 [Clippy] Initializing...")
+        print("🚀 [ProjectZ] Initializing...")
         do {
             let config = VecturaConfig(
                 name: "pastepup-clipboard-v2",
@@ -26,10 +26,10 @@ class Clippy: ObservableObject {
              
             isInitialized = true
             statusMessage = "Ready (Qwen3-Embedding-0.6B)"
-            print("✅ [Clippy] Initialized successfully with Qwen3")
+            print("✅ [ProjectZ] Initialized successfully with Qwen3")
         } catch {
             statusMessage = "Failed to initialize: \(error.localizedDescription)"
-            print("❌ [Clippy] Initialization error: \(error)")
+            print("❌ [ProjectZ] Initialization error: \(error)")
         }
     }
     
@@ -39,12 +39,12 @@ class Clippy: ObservableObject {
     
     func addDocuments(items: [(UUID, String)]) async {
         guard let vectorDB = vectorDB else { 
-            print("⚠️ [Clippy] Cannot add documents - vectorDB not initialized")
+            print("⚠️ [ProjectZ] Cannot add documents - vectorDB not initialized")
             return 
         }
         
         let count = items.count
-        print("📝 [Clippy] Adding \(count) documents...")
+        print("📝 [ProjectZ] Adding \(count) documents...")
         
         do {
             let texts = items.map { $0.1 }
@@ -62,11 +62,11 @@ class Clippy: ObservableObject {
     
     func search(query: String, limit: Int = 10) async -> [(UUID, Float)] {
         guard let vectorDB = vectorDB else { 
-            print("⚠️ [Clippy] Cannot search - vectorDB not initialized")
+            print("⚠️ [ProjectZ] Cannot search - vectorDB not initialized")
             return [] 
         }
         
-        print("🔎 [Clippy] Searching for: '\(query)' (limit: \(limit))")
+        print("🔎 [ProjectZ] Searching for: '\(query)' (limit: \(limit))")
         
         do {
             let results = try await vectorDB.search(

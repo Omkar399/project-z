@@ -21,11 +21,11 @@ struct ContentView: View {
     
     // Derived properties for cleaner access (optional, but helps avoid massive find/replace)
     private var clipboardMonitor: ClipboardMonitor { container.clipboardMonitor }
-    private var clippy: Clippy { container.clippy }
+    private var clippy: ProjectZ { container.clippy }
     private var hotkeyManager: HotkeyManager { container.hotkeyManager }
     private var visionParser: VisionScreenParser { container.visionParser }
     private var textCaptureService: TextCaptureService { container.textCaptureService }
-    private var clippyController: ClippyWindowController { container.clippyController }
+    private var clippyController: ProjectZWindowController { container.clippyController }
     private var localAIService: LocalAIService { container.localAIService }
     private var grokService: GrokService { container.grokService }
     private var audioRecorder: AudioRecorder { container.audioRecorder }
@@ -411,7 +411,7 @@ struct ContentView: View {
                     
                     for try await token in stream {
                         fullAnswer += token
-                        // UX: Show streaming text in Clippy bubble!
+                        // UX: Show streaming text in ProjectZ bubble!
                         // Truncate to keep it fitting in the bubble (e.g. last 50 chars)
                         await MainActor.run {
                             let preview = fullAnswer.suffix(50).replacingOccurrences(of: "\n", with: " ")
