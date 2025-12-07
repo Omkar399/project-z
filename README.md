@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="Clippy/Resources/clippy-writing.gif" alt="Project Z - Clippy Writing" width="200" />
+
 <img src="https://img.icons8.com/?id=dL3M6FPblFer&format=png&size=128" alt="Project Z Logo" />
 
 # <img src="https://img.icons8.com/?id=ESeqfDjC5eVO&format=png&size=48" valign="middle" /> Project Z
