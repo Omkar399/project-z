@@ -60,7 +60,11 @@ class SwiftDataClipboardRepository: ClipboardRepository {
         
         // Combine Title and Content for search embedding so both are searchable
         // Logic mirrored from ClipboardMonitor
-        let embeddingText = (title != nil && !title!.isEmpty) ? "\(title!)\n\n\(content)" : content
+        var embeddingText = (title != nil && !title!.isEmpty) ? "\(title!)\n\n\(content)" : content
+        
+        if !tags.isEmpty {
+            embeddingText += "\n\nTags: \(tags.joined(separator: ", "))"
+        }
         
         await vectorService.addDocument(vectorId: finalVectorId, text: embeddingText)
         
@@ -91,7 +95,11 @@ class SwiftDataClipboardRepository: ClipboardRepository {
         
         // 2. Update Vector DB
         if let vectorId = item.vectorId {
-            let embeddingText = (item.title != nil && !item.title!.isEmpty) ? "\(item.title!)\n\n\(item.content)" : item.content
+            var embeddingText = (item.title != nil && !item.title!.isEmpty) ? "\(item.title!)\n\n\(item.content)" : item.content
+            
+            if !item.tags.isEmpty {
+                embeddingText += "\n\nTags: \(item.tags.joined(separator: ", "))"
+            }
             
              // ProjectZ.addDocument overwrites if ID exists (upsert)
             await vectorService.addDocument(vectorId: vectorId, text: embeddingText)
