@@ -246,9 +246,8 @@ class TextCaptureService: ObservableObject {
 
     /// Replace the captured text with the AI answer in the original text field
     func replaceCapturedTextWithAnswer(_ answer: String) {
-        guard let currentSourceApp = sourceApp else {
-            print("❌ [TextCaptureService] No source app available for replacement")
-            return
+        if sourceApp == nil {
+             print("⚠️ [TextCaptureService] No source app available, but attempting text replacement anyway")
         }
         
         print("🔄 [TextCaptureService] Replacing captured text with answer...")

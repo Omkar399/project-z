@@ -175,15 +175,17 @@ class ClipboardMonitor: ObservableObject {
         Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
             
-            var title: String?
+            let title: String? = nil
             var description: String = "[Image]"
             
             if let grok = await self.grokService {
                 description = await grok.analyzeImage(imageData: pngData) ?? "[Image]"
             }
             
+            let finalDescription = description
+            
             await MainActor.run {
-                item.content = description
+                item.content = finalDescription
                 item.title = title
             }
             
@@ -257,11 +259,12 @@ class ClipboardMonitor: ObservableObject {
             }
             
             if !tags.isEmpty, let repo = await self.repository {
+                let finalTags = tags
                 await MainActor.run {
-                    item.tags = tags
+                    item.tags = finalTags
                     Task {
                         try? await repo.updateItem(item)
-                        print("   🏷️ Tags updated: \(tags)")
+                        print("   🏷️ Tags updated: \(finalTags)")
                     }
                 }
             }
