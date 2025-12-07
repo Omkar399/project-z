@@ -8,6 +8,7 @@ import SwiftData
 class ClipboardMonitor: ObservableObject {
     @Published var clipboardContent: String = ""
     @Published var isMonitoring: Bool = false
+    @Published var isPrivacyMode: Bool = false // Privacy mode state
     
     private var timer: Timer?
     private var lastChangeCount: Int = 0
@@ -76,9 +77,28 @@ class ClipboardMonitor: ObservableObject {
         contextEngine?.getRichContext(clipboardContent: clipboardContent) ?? ""
     }
     
+    func togglePrivacyMode() {
+        isPrivacyMode.toggle()
+        print("🕵️‍♂️ [ClipboardMonitor] Privacy Mode: \(isPrivacyMode ? "ON" : "OFF")")
+        // Post notification for UI updates
+        NotificationCenter.default.post(
+            name: NSNotification.Name("PrivacyModeChanged"),
+            object: nil,
+            userInfo: ["isEnabled": isPrivacyMode]
+        )
+    }
+    
     // MARK: - Clipboard Detection
     
     private func checkClipboard() {
+        // If Privacy Mode is active, skip all processing
+        if isPrivacyMode {
+            // Update lastChangeCount so we don't process this content even after turning off privacy mode
+            let pasteboard = NSPasteboard.general
+            lastChangeCount = pasteboard.changeCount
+            return
+        }
+        
         let pasteboard = NSPasteboard.general
         let currentChangeCount = pasteboard.changeCount
         
@@ -185,7 +205,7 @@ class ClipboardMonitor: ObservableObject {
         if trimmedContent.isEmpty || trimmedContent.count < 3 { return }
         
         // Filter debug content
-        let debugPatterns = ["⌨️", "🎯", "✅", "❌", "📤", "📡", "📄", "💾", "🏷️", "🤖", "🛑", "🔄"]
+        let debugPatterns = ["⌨️", "🎯", "✅", "❌", "📤", "📡", "📄", "💾", "🏷️", "🤖", "🛑", "🔄", "🕵️‍♂️"]
         let logPatterns = ["[HotkeyManager]", "[ContentView]", "[TextCaptureService]", "[GeminiService]", "[ClipboardMonitor]", "[EmbeddingService]"]
         if debugPatterns.contains(where: { trimmedContent.contains($0) }) || logPatterns.contains(where: { trimmedContent.contains($0) }) {
             return

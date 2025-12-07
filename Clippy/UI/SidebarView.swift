@@ -66,7 +66,27 @@ struct SidebarView: View {
                 }
                 .buttonStyle(.plain)
                 
-                // Assistant
+                // Privacy Mode Toggle
+                HStack {
+                    Image(systemName: container.clipboardMonitor.isPrivacyMode ? "eye.slash.fill" : "eye.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(container.clipboardMonitor.isPrivacyMode ? .purple : .secondary)
+                    Text("Incognito")
+                        .font(.system(size: 12))
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { container.clipboardMonitor.isPrivacyMode },
+                        set: { _ in 
+                            container.clipboardMonitor.togglePrivacyMode()
+                            clippyController.setPrivacyMode(container.clipboardMonitor.isPrivacyMode)
+                        }
+                    ))
+                        .toggleStyle(.switch)
+                        .scaleEffect(0.7)
+                        .labelsHidden()
+                }
+                
+                // Assistant Toggle
                 HStack {
                     Image(systemName: "sparkles")
                         .font(.system(size: 11))
@@ -90,6 +110,7 @@ struct SidebarView: View {
                             KeyboardShortcutHint(keys: "⌥X", description: "Ask")
                             KeyboardShortcutHint(keys: "⌥V", description: "OCR")
                             KeyboardShortcutHint(keys: "⌥␣", description: "Voice")
+                            KeyboardShortcutHint(keys: "⇧Esc", description: "Incognito")
                         }
                         .padding(.top, 4)
                     }

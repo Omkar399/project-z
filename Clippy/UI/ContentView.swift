@@ -127,7 +127,8 @@ struct ContentView: View {
             onVisionTrigger: { handleVisionHotkeyTrigger() },
             onTextCaptureTrigger: { handleTextCaptureTrigger() },
             onVoiceCaptureTrigger: { toggleVoiceRecording() },
-            onSpotlightTrigger: { handleSpotlightTrigger() }
+            onSpotlightTrigger: { handleSpotlightTrigger() },
+            onPrivacyModeTrigger: { handlePrivacyModeTrigger() }
         )
         print("⌨️ [ContentView] Hotkey listener started: \(hotkeyManager.isListening)")
     }
@@ -137,6 +138,12 @@ struct ContentView: View {
     private func handleSpotlightTrigger() {
         print("✨ [ContentView] Spotlight hotkey triggered!")
         container.spotlightController.toggle()
+    }
+    
+    private func handlePrivacyModeTrigger() {
+        print("🕵️‍♂️ [ContentView] Privacy mode hotkey triggered (Shift+Esc)")
+        clipboardMonitor.togglePrivacyMode()
+        clippyController.setPrivacyMode(clipboardMonitor.isPrivacyMode)
     }
     
     // MARK: - Input Mode Management
