@@ -32,6 +32,8 @@
 	<string>ProjectZ needs access to your calendar to help you check your schedule, find free time, and answer questions about your upcoming events.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>ProjectZ needs access to your reminders to help you track tasks and to-dos.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>ProjectZ needs access to your contacts to find email addresses for scheduling calendar events.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2025 Barathwaj Anandan. All rights reserved.</string>
 </dict>

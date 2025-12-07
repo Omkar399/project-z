@@ -20,8 +20,17 @@ struct GrokAPIResponse: Codable {
 
 // Classification Response
 struct ClassificationResponse: Codable {
-    let category: String  // "clipboard", "calendar", or "general"
+    let category: String  // "clipboard", "calendar_read", "calendar_create", or "general"
     let confidence: Double
+}
+
+// Event Details for Creation
+struct EventDetails: Codable {
+    let title: String
+    let startDate: String // ISO 8601 or confident relative string
+    let durationMinutes: Int
+    let notes: String?
+    let attendeeNames: [String]? // Names to look up
 }
 
 @MainActor
@@ -36,6 +45,8 @@ class GrokService: ObservableObject, AIServiceProtocol {
     private let fastSystemPrompt = "You are Grok-4. Respond extremely fast. For simple decisions, give only the final answer with minimal reasoning. Use single-sentence outputs unless more detail is requested. Do not think step-by-step unless asked."
     
     weak var calendarService: CalendarService?
+    weak var contactService: ContactService?
+    
     
     init(apiKey: String) {
         self.apiKey = apiKey
@@ -43,6 +54,10 @@ class GrokService: ObservableObject, AIServiceProtocol {
     
     func setCalendarService(_ service: CalendarService) {
         self.calendarService = service
+    }
+    
+    func setContactService(_ service: ContactService) {
+        self.contactService = service
     }
     
     /// Update the API key
@@ -99,13 +114,19 @@ class GrokService: ObservableObject, AIServiceProtocol {
             // PHASE 2a: RAG Path - Search clipboard + provide context
             print("🔍 [GrokService] Phase 2a: Using clipboard RAG path")
             return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
-        } else if classification.category == "calendar" {
-            // PHASE 2b: Calendar Path - Fetch calendar data
-            print("📅 [GrokService] Phase 2b: Using calendar path")
+        } else if classification.category == "calendar_read" || classification.category == "calendar" {
+            // PHASE 2b: Calendar Read Path
+            print("📅 [GrokService] Phase 2b: Using calendar READ path")
             return await generateCalendarAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
+            
+        } else if classification.category == "calendar_create" {
+            // PHASE 2c: Calendar Write Path
+            print("🗓️ [GrokService] Phase 2c: Using calendar CREATE path")
+            return await generateCalendarCreation(question: question)
+            
         } else {
-            // PHASE 2c: Direct Path - General knowledge
-            print("🌐 [GrokService] Phase 2c: Using direct general knowledge path")
+            // PHASE 2d: Direct Path - General knowledge
+            print("🌐 [GrokService] Phase 2d: Using direct general knowledge path")
             return await generateDirectAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
         }
     }
@@ -116,18 +137,19 @@ class GrokService: ObservableObject, AIServiceProtocol {
         let classificationPrompt = """
         Question: "\(question)"
         
-        Classify as "clipboard", "calendar", or "general".
+        Classify as "clipboard", "calendar_read", "calendar_create", or "general".
         
         Rules:
         - "my", "that", "what was", "the code", "I copied" → clipboard
-        - "calendar", "schedule", "meeting", "event", "free", "busy", "today", "tomorrow", "this week" → calendar
+        - "calendar", "schedule", "meeting", "event", "free", "busy", "today", "tomorrow", "this week" (checking/reading) → calendar_read
+        - "create", "schedule", "add to calendar", "set up a meeting", "remind me to" (action/writing) → calendar_create
         - "what is", "how to", "explain", "who is" → general
         
         Output ONLY JSON (no reasoning):
-        {"category": "clipboard", "confidence": 0.9}
+        {"category": "calendar_create", "confidence": 0.95}
         """
         
-        guard let response = await callGrok(prompt: classificationPrompt, systemPrompt: "Fast classifier. JSON only. No reasoning.", maxTokens: 30, temperature: 0) else {
+        guard let response = await callGrok(prompt: classificationPrompt, systemPrompt: "Fast classifier. JSON only. No reasoning.", maxTokens: 40, temperature: 0) else {
             return nil
         }
         
@@ -203,6 +225,126 @@ class GrokService: ObservableObject, AIServiceProtocol {
         """
         
         return await callGrok(prompt: prompt, systemPrompt: fastSystemPrompt, maxTokens: 500, temperature: 0.3, conversationHistory: conversationHistory)
+    }
+    
+    // MARK: - Calendar Cross-Check
+    
+    // Helper to parse dates from string (very basic, relies on LLM usually sending ISO or standard formats)
+    // In a real app, we'd use a better date parser or ask LLM for ISO-8601 explicitly.
+    private func parseDate(_ dateString: String) -> Date? {
+        let isoFormatter = ISO8601DateFormatter()
+        if let date = isoFormatter.date(from: dateString) { return date }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss" // Fallback format
+        if let date = formatter.date(from: dateString) { return date }
+        
+        return nil
+    }
+    
+    // MARK: - Calendar Creation Flow
+    
+    private func generateCalendarCreation(question: String) async -> String? {
+        guard let calendarService = calendarService else { return "Calendar service unavailable." }
+        
+        // 1. Extract Details
+        let prompt = """
+        User Request: "\(question)"
+        Current Date: \(Date().ISO8601Format())
+        
+        Extract event details. Return JSON ONLY.
+        Format:
+        {
+            "title": "Event Title",
+            "startDate": "YYYY-MM-DDTHH:mm:ss",
+            "durationMinutes": 60,
+            "notes": "Optional notes from request",
+            "attendeeNames": ["Name 1", "Name 2"]
+        }
+        """
+        
+        guard let response = await callGrok(prompt: prompt, systemPrompt: "JSON Extractor. No Markdown.", maxTokens: 150, temperature: 0) else {
+            return "Failed to understand event details."
+        }
+        
+        let cleaned = response
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+        guard let data = cleaned.data(using: .utf8),
+              let details = try? JSONDecoder().decode(EventDetails.self, from: data) else {
+            return "Could not parse event details. Please try again."
+        }
+        
+        // 2. Parse Date
+        guard let startDate = parseDate(details.startDate) else {
+             return "I couldn't understand the date format. Please include a specific date and time."
+        }
+        
+        let endDate = startDate.addingTimeInterval(TimeInterval(details.durationMinutes * 60))
+        
+        // 3. Resolve Attendees
+        var attendees: [String] = []
+        var attendeeStatus = ""
+        
+        if let names = details.attendeeNames, !names.isEmpty, let contactService = contactService {
+            // Request contact access if needed
+             if !contactService.isAuthorized {
+                 _ = await contactService.requestAccess()
+            }
+            
+            attendeeStatus += "\n\n🔍 Debug Info:"
+            attendeeStatus += "\n   • Auth Status: \(contactService.isAuthorized ? "Authorized" : "Denied")"
+            
+            for name in names {
+                print("🔍 Search Contact: '\(name)'")
+                
+                attendeeStatus += "\n   • Searching for: '\(name)'"
+                let foundContacts = await contactService.searchContacts(query: name)
+                attendeeStatus += " -> Found \(foundContacts.count) matches"
+                
+                if let bestMatch = foundContacts.first {
+                    if let email = bestMatch.email {
+                         attendees.append(email)
+                         attendeeStatus += "\n   ✅ Selected: \(bestMatch.name) (\(email))"
+                    }
+                } else {
+                    attendeeStatus += "\n   ❌ No match for: \(name)"
+                }
+            }
+        }
+        
+        // 4. Create Event
+        do {
+            // Request auth if needed
+             if !calendarService.isAuthorized {
+                let granted = await calendarService.requestCalendarAccess()
+                if !granted { return "Calendar access denied." }
+            }
+            
+            _ = try await calendarService.createEvent(
+                title: details.title,
+                startDate: startDate,
+                endDate: endDate,
+                notes: details.notes,
+                attendees: attendees.isEmpty ? nil : attendees
+            )
+            
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            let timeStr = formatter.string(from: startDate)
+            
+            var message = "✅ Scheduled '**\(details.title)**' for \(timeStr)."
+            if !attendeeStatus.isEmpty {
+                message += "\n\nAttendees:" + attendeeStatus
+            }
+            
+            return message
+        } catch {
+            return "Failed to schedule event: \(error.localizedDescription)"
+        }
     }
     
     // MARK: - Direct Answer Generation

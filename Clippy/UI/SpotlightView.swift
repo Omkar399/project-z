@@ -11,8 +11,6 @@ struct SpotlightView: View {
     @State private var response: String = ""
     @State private var isProcessing: Bool = false
     @State private var isVisible: Bool = false
-    @State private var debugLog: [String] = []
-    @State private var showDebugLog: Bool = false
     @FocusState private var isInputFocused: Bool
     
     // Guardian mode
@@ -146,14 +144,6 @@ struct SpotlightView: View {
                         .transition(.scale.combined(with: .opacity))
                     }
                     
-                    // Debug toggle (subtle)
-                    Button(action: { withAnimation { showDebugLog.toggle() } }) {
-                        Image(systemName: "ladybug")
-                            .font(.system(size: 12))
-                            .foregroundColor(showDebugLog ? .orange : .secondary.opacity(0.3))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Toggle Debug Log")
                 }
             }
             .padding(.horizontal, 16)
@@ -268,58 +258,7 @@ struct SpotlightView: View {
                 .id(response.count) // Force refresh when response changes
             }
             
-            // MARK: - Debug Log
-            if showDebugLog {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("DEBUG LOG")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        if isProcessing {
-                            ProgressView()
-                                .scaleEffect(0.5)
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                    
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 4) {
-                                if debugLog.isEmpty {
-                                    Text("Waiting for query...")
-                                        .font(.system(size: 10, design: .monospaced))
-                                        .foregroundColor(.secondary.opacity(0.5))
-                                } else {
-                                    ForEach(Array(debugLog.enumerated()), id: \.offset) { index, log in
-                                        Text(log)
-                                            .font(.system(size: 10, design: .monospaced))
-                                            .foregroundColor(log.contains("❌") ? .red : log.contains("✅") ? .green : .secondary)
-                                            .id(index)
-                                            .textSelection(.enabled)
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .onChange(of: debugLog.count) {
-                            if debugLog.count > 0 {
-                                withAnimation {
-                                    proxy.scrollTo(debugLog.count - 1, anchor: .bottom)
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 120)
-                }
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.black.opacity(0.5))
-                )
-                .padding(.top, 16)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+
         }
         .padding(24)
         .frame(width: 680) // Fixed width
@@ -383,6 +322,7 @@ struct SpotlightView: View {
         .scaleEffect(isVisible ? 1.0 : 0.96)
         .opacity(isVisible ? 1.0 : 0.0)
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isVisible)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isVisible)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: response)
     }
     
@@ -430,32 +370,21 @@ struct SpotlightView: View {
         }
     }
     
-    private func log(_ message: String) {
-        let timestamp = Date().formatted(date: .omitted, time: .standard)
-        let logEntry = "[\(timestamp)] \(message)"
-        print(logEntry)
-        Task { @MainActor in
-            withAnimation {
-                debugLog.append(logEntry)
-                if debugLog.count > 20 { debugLog.removeFirst() }
-            }
-        }
-    }
+
     
     private func performQuery(_ userQuery: String) async {
-        await MainActor.run { debugLog = [] }
-        log("🔍 Starting query: \(userQuery)")
+        print("🔍 Starting query: \(userQuery)")
         
         var clipboardContext: [RAGContextItem] = []
         
         // Search
-        log("🔍 Searching clipboard...")
+        print("🔍 Searching clipboard...")
         let searchResults = await container.clippy.search(query: userQuery, limit: 5)
         let vectorIds = Set(searchResults.map { $0.0 })
         
         if !vectorIds.isEmpty {
             // Filter items matching the search results
-            log("🔎 Available SwiftData items: \(allItems.count)")
+            print("🔎 Available SwiftData items: \(allItems.count)")
             
             let relevantItems = allItems.filter { item in
                 guard let itemVectorId = item.vectorId else { return false }
@@ -464,10 +393,10 @@ struct SpotlightView: View {
             }
             
             if relevantItems.isEmpty && !vectorIds.isEmpty {
-                 log("⚠️ Mismatch! Search found \(vectorIds.count) vectors but 0 SwiftData items matched.")
+                 print("⚠️ Mismatch! Search found \(vectorIds.count) vectors but 0 SwiftData items matched.")
                  // Print first few SwiftData IDs to debug
                  let firstFewIDs = allItems.prefix(3).compactMap { $0.vectorId?.uuidString }
-                 log("⚠️ First 3 SwiftData IDs: \(firstFewIDs)")
+                 print("⚠️ First 3 SwiftData IDs: \(firstFewIDs)")
             }
             
             clipboardContext = relevantItems.map { item in
@@ -484,7 +413,7 @@ struct SpotlightView: View {
         // Mem0
         if container.mem0Service.isAvailable {
             let memories = await container.mem0Service.searchMemories(query: userQuery, limit: 3)
-            log("🧠 Mem0 found \(memories.count) memories")
+            print("🧠 Mem0 found \(memories.count) memories")
             
             let memoryItems = memories.map { memory in
                 RAGContextItem(
@@ -500,8 +429,10 @@ struct SpotlightView: View {
         }
         
         // Grok Generation
-        log("🤖 Asking AI...")
+        print("🤖 Asking AI...")
         let conversationHistory = container.conversationManager.getFormattedHistory()
+        
+        // Logging handled via onReceive
         
         let answer = await container.grokService.generateAnswer(
             question: userQuery,

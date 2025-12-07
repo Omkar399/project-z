@@ -21,6 +21,7 @@ class AppDependencyContainer: ObservableObject {
     let grokService: GrokService
     let audioRecorder: AudioRecorder
     let calendarService: CalendarService
+    let contactService: ContactService // New Service
     let mem0Service: Mem0Service
     
     /// Unified AI service access - returns the single cloud AI service
@@ -52,6 +53,7 @@ class AppDependencyContainer: ObservableObject {
         
         // 2. Initialize Dependent Services
         self.clipboardMonitor = ClipboardMonitor()
+        self.contactService = ContactService()
         
         print("✅ [AppDependencyContainer] Services initialized.")
         
@@ -61,8 +63,13 @@ class AppDependencyContainer: ObservableObject {
         // 4. Wire up calendar service to Grok
         self.grokService.setCalendarService(calendarService)
         
-        // 5. Wire up RizzSessionManager
+        // 5. Wire up Contact Service
+        self.grokService.setContactService(contactService)
+        
+        // 6. Wire up RizzSessionManager
         self.rizzSessionManager.setup(hotkeyManager: self.hotkeyManager, clipboardMonitor: self.clipboardMonitor)
+        
+        // 7. Connect RizzSessionManager to HotkeyManager
         self.hotkeyManager.rizzSessionManager = self.rizzSessionManager
     }
     

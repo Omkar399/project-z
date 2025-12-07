@@ -140,6 +140,57 @@ class CalendarService: ObservableObject {
         return formatted
     }
     
+    // MARK: - Event Creation
+    
+    /// Create a new calendar event
+    func createEvent(title: String, startDate: Date, endDate: Date, notes: String? = nil, attendees: [String]? = nil) async throws -> String {
+        guard isAuthorized else {
+            throw NSError(domain: "CalendarService", code: 403, userInfo: [NSLocalizedDescriptionKey: "Calendar access not authorized"])
+        }
+        
+        let event = EKEvent(eventStore: eventStore)
+        event.title = title
+        event.startDate = startDate
+        event.endDate = endDate
+        event.notes = notes
+        event.calendar = eventStore.defaultCalendarForNewEvents
+        
+        if let attendees = attendees, !attendees.isEmpty {
+             // Create attendees
+             // Note: EKEvent.attendees is get-only or managed via participants on macOS for some calendar types.
+             // We generally cannot "force add" attendees to a local calendar easy without sending invites.
+             // For Exchange/iCloud, we add them.
+             
+             // Simplest approach: Add emails to notes if we can't add attendees directly, 
+             // OR try to find API.
+             // EKEvent does allow setting attendees if the calendar supports it.
+             
+            // Attempt to create attendees
+             var eventAttendees: [EKParticipant] = []
+             // We can't init EKParticipant directly. We rely on creating it via email.
+             // Actually, the public API doesn't allow creating EKParticipant easily.
+             
+             // Workaround: Append to notes for clarity if we can't truly invite them.
+             // BUT, if we want to invite, we need to add them.
+             
+             // Let's just append to description for this MVP as "Invites sent to: ..."
+             // Real integration requires more complex attendee management.
+             
+             var newNotes = notes ?? ""
+             newNotes += "\n\nAttendees:\n" + attendees.joined(separator: "\n")
+             event.notes = newNotes
+        }
+        
+        do {
+            try eventStore.save(event, span: .thisEvent)
+            print("✅ [CalendarService] Created event: \(title)")
+            return event.eventIdentifier
+        } catch {
+            print("❌ [CalendarService] Failed to save event: \(error)")
+            throw error
+        }
+    }
+    
     /// Get calendar summary for a specific query
     func getCalendarContext(for query: String) async -> String {
         guard isAuthorized else {
