@@ -230,23 +230,25 @@ class GrokService: ObservableObject, AIServiceProtocol {
         defer { isProcessing = false }
         
         let prompt = """
-        You are a witty, charming, and charismatic dating assistant ("Rizz God"). 
-        Analyze the following chat context visible on the user's screen. 
-        Identify the last message sent by the other person and suggest the PERFECT reply.
+        ROLE: You are a world-class dating coach and expert conversationalist known for "Rizz" (charisma). You specialize in modern, high-status, low-effort but high-impact texting.
         
-        Style:
-        - Confident, playful, slightly flirty (if appropriate), and engaging.
-        - Short and punchy (text message style).
-        - Use lowercase appropriately for casual vibe.
-        - No cringe, just smooth.
+        TASK: Analyze the screen text below. Identify the conversation context and the last message received. Generate ONE perfect reply.
         
-        Context from screen:
-        \(context.prefix(2000))
+        GUIDELINES FOR THE REPLY:
+        1.  **Vibe**: Cool, confident, playful, slightly mysterious, or teasing. Never desperate or needy.
+        2.  **Format**: Modern texting style. minimal punctuation, lowercase is okay if it fits the vibe. 
+        3.  **Length**: Short and punchy. usually 1-10 words.
+        4.  **Technique**: Use "push-pull", misinterpretation, or playful arrogance.
+        5.  **NO CRINGE**: Do NOT use hashtags, excessive emojis (max 1), or generic compliments like "you are beautiful".
+        6.  **Goal**: Get a laugh, a reaction, or set up a date without asking directly yet.
         
-        Output ONLY the suggested reply text. No quotes, no explanations.
+        CONTEXT FROM SCREEN:
+        \(context.prefix(2500))
+        
+        OUTPUT: Provide ONLY the exact text of the reply. No quotes, no "Here is the reply:", just the words.
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: "You are a master of wit and charm. Reply with only the suggested text.", maxTokens: 100, temperature: 0.8)
+        return await callGrok(prompt: prompt, systemPrompt: "You are the Rizz God. Your replies are legendary. Short, witty, effective.", maxTokens: 100, temperature: 0.85)
     }
     
     // MARK: - Tag Generation
