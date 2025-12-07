@@ -11,6 +11,11 @@ from typing import List, Dict, Optional
 import uvicorn
 from mem0 import Memory
 import logging
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,12 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Mem0 with OpenAI embeddings
-import os
-
-# Set OpenAI API key
-OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE"
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+# Get OpenAI API key from environment
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY not found in environment variables")
 
 config = {
     "vector_store": {
