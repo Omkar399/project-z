@@ -16,6 +16,7 @@ class AppDependencyContainer: ObservableObject {
     let conversationManager: ConversationManager
     let slashCommandHandler: SlashCommandHandler
     let rizzSessionManager: RizzSessionManager // New Service
+    let meetingAlertService: MeetingAlertService // Proactive meeting briefings
     
     // AI Services
     let grokService: GrokService
@@ -50,6 +51,7 @@ class AppDependencyContainer: ObservableObject {
         self.slashCommandHandler = SlashCommandHandler()
         self.mem0Service = Mem0Service()
         self.rizzSessionManager = RizzSessionManager() // Initialize RizzManager
+        self.meetingAlertService = MeetingAlertService() // Initialize MeetingAlertService
         
         // 2. Initialize Dependent Services
         self.clipboardMonitor = ClipboardMonitor()
@@ -112,6 +114,15 @@ class AppDependencyContainer: ObservableObject {
         slashCommandHandler.calendarService = calendarService
         slashCommandHandler.grokService = grokService
         
-        print("✅ [AppDependencyContainer] All dependencies injected. Guardian mode active.")
+        // Inject dependencies into MeetingAlertService and start monitoring
+        meetingAlertService.setDependencies(
+            calendarService: calendarService,
+            mem0Service: mem0Service,
+            grokService: grokService,
+            spotlightController: spotlightController
+        )
+        meetingAlertService.startMonitoring()
+        
+        print("✅ [AppDependencyContainer] All dependencies injected. Guardian mode + Meeting alerts active.")
     }
 }
