@@ -14,6 +14,7 @@ struct ContentView: View {
     private var clippyController: ProjectZWindowController { container.clippyController }
     private var grokService: GrokService { container.grokService }
     private var audioRecorder: AudioRecorder { container.audioRecorder }
+    private var rizzSessionManager: RizzSessionManager { container.rizzSessionManager }
 
     // Constants/State
     @State private var elevenLabsService: ElevenLabsService?
@@ -154,7 +155,7 @@ struct ContentView: View {
         case textCapture // Option+X
         case voiceCapture // Option+Space
         case visionCapture // Option+V
-        case rizzMode // Option+R
+        case rizzMode // Control+Return
     }
     
     @State private var activeInputMode: InputMode = .none
@@ -169,6 +170,11 @@ struct ContentView: View {
         if isRecordingVoice {
             isRecordingVoice = false
             _ = audioRecorder.stopRecording()
+        }
+        
+        // Cancel Rizz Session
+        if activeInputMode == .rizzMode {
+            rizzSessionManager.cancel()
         }
         
         // Reset UI state
@@ -191,10 +197,14 @@ struct ContentView: View {
     private func handleRizzTrigger() {
         print("\n😎 [ContentView] Rizz hotkey triggered (Control+Return)")
         
+        // If already in Rizz mode, maybe we want to commit or restart?
+        // Let's assume re-trigger restarts or does nothing.
+        // But HotkeyManager handles key interception, so re-trigger shouldn't happen unless we didn't consume it.
+        
         resetInputState()
         activeInputMode = .rizzMode
         
-        clippyController.setState(.thinking, message: "Analyzing Rizz... 😎")
+        clippyController.setState(.thinking, message: "Generating Rizz... 😎")
         
         visionParser.parseCurrentScreen { result in
             DispatchQueue.main.async {
@@ -227,31 +237,26 @@ struct ContentView: View {
     }
     
     private func processRizzContext(_ context: String) {
-        print("😎 [ContentView] Generating Rizz reply...")
+        print("😎 [ContentView] Generating Rizz options...")
         
         Task {
-            let reply = await grokService.generateRizzReply(context: context)
+            let options = await grokService.generateRizzOptions(context: context)
             
             await MainActor.run {
-                if let reply = reply, !reply.isEmpty {
-                    // Show in bubble
-                    self.clippyController.setState(.done, message: "Rizz ready! ✨")
+                if !options.isEmpty {
+                    self.clippyController.setState(.done, message: "Cycle: ↑/↓ | Send: Enter")
                     
-                    // Insert at cursor (like text capture)
-                    self.textCaptureService.insertTextAtCursor(reply)
+                    // Start the interactive session
+                    self.rizzSessionManager.startSession(options: options)
                     
-                    // Also copy to clipboard as backup
-                    ClipboardService.shared.copyTextToClipboard(reply)
+                    // We don't hide Clippy here; we keep it visible as instructions
+                    // RizzSessionManager handles the typing/cycling
                     
                 } else {
                     self.clippyController.setState(.error, message: "Couldn't generate rizz 😔")
-                }
-                
-                // Reset mode after delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    if self.activeInputMode == .rizzMode {
-                        self.activeInputMode = .none
-                        self.clippyController.hide()
+                    // Reset mode after delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                        self.resetInputState()
                     }
                 }
             }

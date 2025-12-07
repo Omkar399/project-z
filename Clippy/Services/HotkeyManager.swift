@@ -16,6 +16,15 @@ class HotkeyManager: ObservableObject {
     private var onPrivacyModeTrigger: (() -> Void)?
     private var onRizzTrigger: (() -> Void)?
     
+    // Rizz Mode Integration
+    weak var rizzSessionManager: RizzSessionManager?
+    private var isRizzModeActive: Bool = false
+    
+    func setRizzMode(active: Bool) {
+        self.isRizzModeActive = active
+        print("🎹 [HotkeyManager] Rizz Mode Active: \(active)")
+    }
+    
     func startListening(
         onTrigger: @escaping () -> Void,
         onVisionTrigger: @escaping () -> Void,
@@ -44,6 +53,52 @@ class HotkeyManager: ObservableObject {
                 guard let refcon = refcon else { return Unmanaged.passUnretained(event) }
                 
                 let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon).takeUnretainedValue()
+                
+                // -------------------------------------------------------------
+                // EXCLUSIVE RIZZ MODE INTERCEPTION
+                // -------------------------------------------------------------
+                if manager.isRizzModeActive {
+                    let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+                    
+                    // Up Arrow (126)
+                    if keyCode == 126 {
+                        print("⬆️ [HotkeyManager] Rizz Up Arrow Intercepted")
+                        DispatchQueue.main.async { manager.rizzSessionManager?.cyclePrevious() }
+                        return nil // Consume event
+                    }
+                    
+                    // Down Arrow (125)
+                    if keyCode == 125 {
+                        print("⬇️ [HotkeyManager] Rizz Down Arrow Intercepted")
+                        DispatchQueue.main.async { manager.rizzSessionManager?.cycleNext() }
+                        return nil // Consume event
+                    }
+                    
+                    // Return/Enter (36) - Commit
+                    if keyCode == 36 {
+                        print("✅ [HotkeyManager] Rizz Commit (Enter)")
+                        // We let Enter go through so it sends the message, but we stop the session
+                        DispatchQueue.main.async { manager.rizzSessionManager?.commit() }
+                        // Allow event to pass through to send message
+                        return Unmanaged.passUnretained(event)
+                    }
+                    
+                    // Escape (53) - Cancel
+                    if keyCode == 53 {
+                        print("❌ [HotkeyManager] Rizz Cancel (Esc)")
+                        DispatchQueue.main.async { manager.rizzSessionManager?.cancel() }
+                        return nil // Consume event
+                    }
+                    
+                    // Any other key triggers implicit commit/exit (User is editing manually)
+                    // We shouldn't block their typing.
+                    // Option: Stop session on any other key? Or stay active?
+                    // Let's stay active for arrows, but if they type letters, we pass them through.
+                }
+                
+                // -------------------------------------------------------------
+                // STANDARD HOTKEYS
+                // -------------------------------------------------------------
                 
                 // Check for Option+X (text capture trigger)
                 if event.flags.contains(.maskAlternate) && event.getIntegerValueField(.keyboardEventKeycode) == 7 { // 7 = X

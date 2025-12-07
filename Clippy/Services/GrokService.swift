@@ -223,33 +223,48 @@ class GrokService: ObservableObject, AIServiceProtocol {
     
     // MARK: - Rizz Mode
     
-    func generateRizzReply(context: String) async -> String? {
-        print("😎 [GrokService] Generating Rizz reply...")
+    func generateRizzOptions(context: String) async -> [String] {
+        print("😎 [GrokService] Generating Rizz options...")
         
         isProcessing = true
         defer { isProcessing = false }
         
         let prompt = """
-        ROLE: You are a world-class dating coach and expert conversationalist known for "Rizz" (charisma). You specialize in modern, high-status, low-effort but high-impact texting.
+        ROLE: You are a world-class dating coach and expert conversationalist ("Rizz God").
+        TASK: Analyze the chat context. Generate 4 DISTINCT reply options ranging from playful to direct.
         
-        TASK: Analyze the screen text below. Identify the conversation context and the last message received. Generate ONE perfect reply.
+        GUIDELINES:
+        1. **Vibe**: Cool, confident, playful, slightly teasing. Never desperate.
+        2. **Format**: Modern texting style. minimal punctuation, lowercase allowed.
+        3. **Length**: Short and punchy (1-10 words).
+        4. **Anti-Cringe**: No hashtags, no excessive emojis.
+        5. **Anti-Hallucination**: Do NOT define symbols (like ®). Ignore weird artifacts.
         
-        GUIDELINES FOR THE REPLY:
-        1.  **Vibe**: Cool, confident, playful, slightly mysterious, or teasing. Never desperate or needy.
-        2.  **Format**: Modern texting style. minimal punctuation, lowercase is okay if it fits the vibe. 
-        3.  **Length**: Short and punchy. usually 1-10 words.
-        4.  **Technique**: Use "push-pull", misinterpretation, or playful arrogance.
-        5.  **NO CRINGE**: Do NOT use hashtags, excessive emojis (max 1), or generic compliments like "you are beautiful".
-        6.  **Goal**: Get a laugh, a reaction, or set up a date without asking directly yet.
-        7.  **ANTI-HALLUCINATION**: Do NOT define symbols (like ®). Do NOT explain trademarks. If the input contains only symbols, make a joke about it.
-        
-        CONTEXT FROM SCREEN:
+        CONTEXT:
         \(context.prefix(2500))
         
-        OUTPUT: Provide ONLY the exact text of the reply. No quotes, no "Here is the reply:", just the words.
+        OUTPUT FORMAT:
+        Return ONLY a raw JSON array of strings. No markdown formatting.
+        Example: ["option 1", "option 2", "option 3", "option 4"]
         """
         
-        return await callGrok(prompt: prompt, systemPrompt: "You are the Rizz God. You NEVER define words or symbols. You only give witty replies.", maxTokens: 100, temperature: 0.85)
+        guard let response = await callGrok(prompt: prompt, systemPrompt: "You are the Rizz God. Return only a JSON array.", maxTokens: 200, temperature: 0.9) else {
+            return []
+        }
+        
+        // Clean and parse JSON
+        let cleaned = response
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+        
+        if let data = cleaned.data(using: .utf8),
+           let options = try? JSONDecoder().decode([String].self, from: data) {
+            return options.prefix(4).map { String($0) }
+        }
+        
+        // Fallback if JSON fails
+        return [response]
     }
     
     // MARK: - Tag Generation
