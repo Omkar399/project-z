@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
+  <defs>
+    <!-- Soft Blur for the glowing effect -->
+    <filter id="glow-blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+    </filter>
+
+    <!-- Gradients mimicking the Siri color palette -->
+    <linearGradient id="grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3ec9e7;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#3a86ff;stop-opacity:0.6"/>
+    </linearGradient>
+
+    <linearGradient id="grad-purple" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8338ec;stop-opacity:0.7"/>
+      <stop offset="100%" style="stop-color:#ff006e;stop-opacity:0.5"/>
+    </linearGradient>
+
+    <linearGradient id="grad-white" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.6"/>
+      <stop offset="100%" style="stop-color:#a2d2ff;stop-opacity:0.1"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    /* Main container pulse */
+    .siri-orb {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: breathe 4s ease-in-out infinite alternate;
+    }
+
+    /* Individual blob animations */
+    .blob-1 {
+      fill: url(#grad-cyan);
+      mix-blend-mode: screen;
+      transform-origin: center;
+      animation: spin 8s linear infinite, drift 6s ease-in-out infinite alternate;
+    }
+
+    .blob-2 {
+      fill: url(#grad-purple);
+      mix-blend-mode: screen;
+      transform-origin: center;
+      animation: spin-reverse 12s linear infinite, drift-vertical 7s ease-in-out infinite alternate;
+    }
+
+    .blob-3 {
+      fill: url(#grad-white);
+      mix-blend-mode: overlay;
+      transform-origin: center;
+      animation: spin 15s linear infinite, scale-up 5s ease-in-out infinite alternate;
+    }
+
+    /* Keyframes */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes spin-reverse {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    @keyframes drift {
+      0% { transform: translate(-10px, -5px) rotate(0deg); }
+      100% { transform: translate(15px, 10px) rotate(10deg); }
+    }
+    
+    @keyframes drift-vertical {
+      0% { transform: translate(5px, -15px) rotate(360deg); }
+      100% { transform: translate(-5px, 15px) rotate(0deg); }
+    }
+
+    @keyframes breathe {
+      0% { transform: scale(0.95); opacity: 0.9; }
+      100% { transform: scale(1.05); opacity: 1; }
+    }
+    
+    @keyframes scale-up {
+      0% { transform: scale(0.8) rotate(0deg); }
+      100% { transform: scale(1.1) rotate(45deg); }
+    }
+  </style>
+
+  <!-- Group applying the global breathe animation and blur -->
+  <g class="siri-orb" filter="url(#glow-blur)">
+    <!-- 
+      Using 'd' paths that are slightly imperfect circles (blobs) 
+      to create the organic fluid motion when rotated 
+    -->
+    
+    <!-- Layer 1: Cyan/Blue Base -->
+    <path class="blob-1" d="M200,350 C282.8,350 350,282.8 350,200 C350,117.2 282.8,50 200,50 C117.2,50 50,117.2 50,200 C50,282.8 117.2,350 200,350 Z"/>
+    
+    <!-- Layer 2: Purple/Pink Accent (More elliptical to create changing overlap) -->
+    <path class="blob-2" d="M200,340 C290,340 360,270 340,200 C320,130 270,60 200,60 C130,60 60,130 80,200 C100,270 110,340 200,340 Z"/>
+    
+    <!-- Layer 3: White/Blue Highlight (Smallest, irregular shape) -->
+    <path class="blob-3" d="M200,310 C250,310 310,250 310,200 C310,150 250,90 200,90 C150,90 90,150 90,200 C90,250 150,310 200,310 Z"/>
+  </g>
+</svg>

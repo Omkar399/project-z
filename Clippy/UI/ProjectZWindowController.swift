@@ -54,7 +54,8 @@ class ProjectZWindowController: ObservableObject {
                         // Base GIF (no background - transparent, allows drag-through)
                         ProjectZGifPlayer(gifName: gifName)
                             .id(gifName)
-                            .frame(width: 80, height: 60)
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
                             .allowsHitTesting(false) // Allow mouse events to pass through for window dragging
                         
                         // Incognito overlay (sunglasses or mask)
@@ -460,7 +461,7 @@ struct ProjectZGifPlayer: NSViewRepresentable {
     
     func makeNSView(context: Context) -> DraggableImageView {
         let imageView = DraggableImageView()
-        imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.imageScaling = .scaleAxesIndependently
         imageView.animates = true
         return imageView
     }

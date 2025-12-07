@@ -39,6 +39,16 @@ struct SpotlightView: View {
     @StateObject private var keyboardMonitor = KeyboardMonitor()
     
     // Theme
+    private var orbColor: Color {
+        if isNudgeMode {
+            return .red
+        } else if isProcessing {
+            return .purple
+        } else {
+            return .blue
+        }
+    }
+    
     private let gradient = LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
     
     private var inputFieldBackground: some View {
@@ -124,16 +134,13 @@ struct SpotlightView: View {
             // MARK: - Input Area
             HStack(spacing: 16) {
                 // Icon
-                ZStack {
-                    Circle()
-                        .fill(gradient.opacity(0.1))
-                        .frame(width: 36, height: 36)
-                    
-                    Image(systemName: isProcessing ? "sparkles" : "magnifyingglass")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(gradient)
-                        .symbolEffect(.bounce, value: isProcessing)
-                }
+                // Glowing Orb
+                GlowingOrbView(
+                    color: orbColor,
+                    isProcessing: isProcessing,
+                    isGuardian: isNudgeMode
+                )
+                .frame(width: 36, height: 36)
                 
                 // Text Field
                 TextField("Ask anything...", text: $query)
@@ -641,6 +648,57 @@ class KeyboardMonitor: ObservableObject {
     deinit {
         if let monitor = monitor {
             NSEvent.removeMonitor(monitor)
+        }
+    }
+}
+// MARK: - GlowingOrbView Component
+
+struct GlowingOrbView: View {
+    var color: Color
+    var isProcessing: Bool
+    var isGuardian: Bool
+    
+    @State private var isPulsing = false
+    @State private var rotation: Double = 0
+    
+    var body: some View {
+        ZStack {
+            // Outer glow
+            Circle()
+                .fill(color.opacity(0.4))
+                .blur(radius: isProcessing ? 8 : 4)
+                .scaleEffect(isPulsing ? 1.1 : 0.9)
+                .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: isPulsing)
+            
+            // Inner core
+            Circle()
+                .fill(color)
+                .shadow(color: color.opacity(0.8), radius: 5)
+                .scaleEffect(isPulsing ? 1.05 : 0.95)
+                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isPulsing)
+            
+            // Guardian Shield Overlay
+            if isGuardian {
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .shadow(radius: 2)
+            }
+            
+            // Processing rings
+            if isProcessing {
+                Circle()
+                    .trim(from: 0, to: 0.7)
+                    .stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .rotationEffect(.degrees(rotation))
+                    .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: rotation)
+                    .onAppear {
+                        rotation = 360
+                    }
+            }
+        }
+        .onAppear {
+            isPulsing = true
         }
     }
 }
