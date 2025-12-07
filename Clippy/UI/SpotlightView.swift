@@ -126,8 +126,8 @@ struct SpotlightView: View {
                     .onSubmit {
                         handleQuery()
                     }
-                    .onChange(of: query) { newValue in
-                        updateCommandSuggestions(for: newValue)
+                    .onChange(of: query) {
+                        updateCommandSuggestions(for: query)
                     }
                     .disabled(isProcessing)
                 
@@ -298,10 +298,10 @@ struct SpotlightView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .onChange(of: debugLog.count) { oldValue, newValue in
-                            if newValue > 0 {
+                        .onChange(of: debugLog.count) {
+                            if debugLog.count > 0 {
                                 withAnimation {
-                                    proxy.scrollTo(newValue - 1, anchor: .bottom)
+                                    proxy.scrollTo(debugLog.count - 1, anchor: .bottom)
                                 }
                             }
                         }
