@@ -14,7 +14,6 @@ class ClipboardMonitor: ObservableObject {
     private var repository: ClipboardRepository?
     private var contextEngine: ContextEngine?
     private var grokService: GrokService?
-    private var localAIService: LocalAIService?
     
     // MARK: - Computed Properties (delegated to ContextEngine)
     
@@ -34,13 +33,11 @@ class ClipboardMonitor: ObservableObject {
     func startMonitoring(
         repository: ClipboardRepository,
         contextEngine: ContextEngine,
-        grokService: GrokService? = nil,
-        localAIService: LocalAIService? = nil
+        grokService: GrokService? = nil
     ) {
         self.repository = repository
         self.contextEngine = contextEngine
         self.grokService = grokService
-        self.localAIService = localAIService
         
         // Initialize lastChangeCount to avoid processing existing content
         let pasteboard = NSPasteboard.general
@@ -161,18 +158,7 @@ class ClipboardMonitor: ObservableObject {
             var title: String?
             var description: String = "[Image]"
             
-            if let localService = await self.localAIService {
-                let base64Image = pngData.base64EncodedString()
-                if let localDesc = await localService.generateVisionDescription(base64Image: base64Image, screenText: nil) {
-                    description = localDesc
-                    if localDesc.contains("Title:") {
-                        let lines = localDesc.split(separator: "\n")
-                        if let titleLine = lines.first(where: { $0.hasPrefix("Title:") }) {
-                            title = String(titleLine.dropFirst(6)).trimmingCharacters(in: .whitespaces)
-                        }
-                    }
-                }
-            } else if let grok = await self.grokService {
+            if let grok = await self.grokService {
                 description = await grok.analyzeImage(imageData: pngData) ?? "[Image]"
             }
             
@@ -244,11 +230,7 @@ class ClipboardMonitor: ObservableObject {
             
             var tags: [String] = []
             
-            if let localService = await self.localAIService {
-                tags = await Task { @MainActor in
-                    await localService.generateTags(content: content, appName: appName, context: nil)
-                }.value
-            } else if let grok = await self.grokService {
+            if let grok = await self.grokService {
                 tags = await Task { @MainActor in
                     await grok.generateTags(content: content, appName: appName, context: nil)
                 }.value

@@ -1,20 +1,6 @@
 import SwiftUI
 import SwiftData
 
-enum AIServiceType: String, CaseIterable {
-    case grok = "Grok"
-    case local = "Local AI"
-    
-    var description: String {
-        switch self {
-        case .grok:
-            return "Grok (xAI Agentic)"
-        case .local:
-            return "Local Qwen3-4b (On-device)"
-        }
-    }
-}
-
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var container: AppDependencyContainer
@@ -26,7 +12,6 @@ struct ContentView: View {
     private var visionParser: VisionScreenParser { container.visionParser }
     private var textCaptureService: TextCaptureService { container.textCaptureService }
     private var clippyController: ProjectZWindowController { container.clippyController }
-    private var localAIService: LocalAIService { container.localAIService }
     private var grokService: GrokService { container.grokService }
     private var audioRecorder: AudioRecorder { container.audioRecorder }
 
@@ -39,7 +24,6 @@ struct ContentView: View {
     @State private var selectedItems: Set<PersistentIdentifier> = []
     @State private var searchText: String = ""
     @State private var showSettings: Bool = false
-    @State private var selectedAIService: AIServiceType = .local // Default to Local
     
     // AI Processing State
     @State private var isProcessingAnswer: Bool = false
@@ -53,7 +37,6 @@ struct ContentView: View {
         NavigationSplitView {
             SidebarView(
                 selection: $selectedCategory,
-                selectedAIService: $selectedAIService,
                 clippyController: clippyController,
                 showSettings: $showSettings
             )
@@ -95,12 +78,8 @@ struct ContentView: View {
                             elevenLabsService = nil
                         }
                     }
-                ),
-                selectedService: $selectedAIService
+                )
             )
-        }
-        .onChange(of: selectedAIService) { _, newValue in
-            UserDefaults.standard.set(newValue.rawValue, forKey: "SelectedAIService")
         }
         .onChange(of: clipboardMonitor.hasAccessibilityPermission) { _, granted in
             if granted && !hotkeyManager.isListening {
@@ -120,12 +99,6 @@ struct ContentView: View {
     // MARK: - Setup & Services
     
     private func setupServices() {
-        // Load stored AI service selection
-        if let savedServiceString = UserDefaults.standard.string(forKey: "SelectedAIService"),
-           let savedService = AIServiceType(rawValue: savedServiceString) {
-            selectedAIService = savedService
-        }
-        
         // Load stored API key
         let storedKey = getStoredAPIKey("Grok_API_Key")
         if !storedKey.isEmpty {
@@ -222,28 +195,8 @@ struct ContentView: View {
                     print("✅ Vision parsing successful!")
                     print("   Extracted \(parsedContent.fullText.count) characters")
                     if !parsedContent.fullText.isEmpty {
-                        // If we have image data and Local AI is selected, generate a description
-                        if self.selectedAIService == .local, let imageData = parsedContent.imageData {
-                            self.clippyController.setState(.thinking, message: "Analyzing image... 🧠")
-                            
-                            Task {
-                                let base64Image = imageData.base64EncodedString()
-                                if let description = await self.localAIService.generateVisionDescription(base64Image: base64Image) {
-                                    await MainActor.run {
-                                        self.saveVisionContent(description, originalText: parsedContent.fullText)
-                                        self.clippyController.setState(.done, message: "Image analyzed! ✨")
-                                    }
-                                } else {
-                                    await MainActor.run {
-                                        self.saveVisionContent(parsedContent.fullText)
-                                        self.clippyController.setState(.done, message: "Saved text (Vision failed) ⚠️")
-                                    }
-                                }
-                            }
-                        } else {
-                            self.saveVisionContent(parsedContent.fullText)
-                            self.clippyController.setState(.done, message: "Saved \(parsedContent.fullText.count) chars! ✅")
-                        }
+                        self.saveVisionContent(parsedContent.fullText)
+                        self.clippyController.setState(.done, message: "Saved \(parsedContent.fullText.count) chars! ✅")
                     } else {
                         self.clippyController.setState(.error, message: "No text found 👀")
                     }
@@ -388,43 +341,14 @@ struct ContentView: View {
             print("🧠 [ContentView] RAG Context: Using \(relevantItems.count) items (\(searchResults.count) from search)")
 
             let answer: String?
-            let imageIndex: Int?
+            let imageIndex: Int? = nil
             
-            switch selectedAIService {
-            case .grok:
-                // Grok handles its own agentic RAG decision
-                answer = await grokService.generateAnswer(
-                    question: capturedText,
-                    clipboardContext: clipboardContext,
-                    appName: clipboardMonitor.currentAppName
-                )
-                imageIndex = nil
-            case .local:
-                // Streaming Implementation for Local AI
-                var fullAnswer = ""
-                do {
-                    let stream = localAIService.generateAnswerStream(
-                        question: capturedText,
-                        clipboardContext: clipboardContext,
-                        appName: clipboardMonitor.currentAppName
-                    )
-                    
-                    for try await token in stream {
-                        fullAnswer += token
-                        // UX: Show streaming text in ProjectZ bubble!
-                        // Truncate to keep it fitting in the bubble (e.g. last 50 chars)
-                        await MainActor.run {
-                            let preview = fullAnswer.suffix(50).replacingOccurrences(of: "\n", with: " ")
-                            self.clippyController.setState(.writing, message: "...\(preview)")
-                        }
-                    }
-                    answer = fullAnswer
-                } catch {
-                    print("❌ Streaming Error: \(error)")
-                    answer = nil // Fallback to handling nil below
-                }
-                imageIndex = nil
-            }
+            // Grok handles its own agentic RAG decision
+            answer = await grokService.generateAnswer(
+                question: capturedText,
+                clipboardContext: clipboardContext,
+                appName: clipboardMonitor.currentAppName
+            )
             
             await MainActor.run {
                 // Check for errors and get error message
@@ -459,28 +383,7 @@ struct ContentView: View {
             // Transition to done state
             self.clippyController.setState(.done)
             
-            if let imageIndex = imageIndex, imageIndex > 0, imageIndex <= contextItems.count {
-                let item = contextItems[imageIndex - 1]
-                if item.contentType == "image", let imagePath = item.imagePath {
-                    ClipboardService.shared.copyImageToClipboard(imagePath: imagePath)
-                    
-                    // Delete original item logic via Repository
-                    if let repository = self.container.repository {
-                        Task {
-                            try? await repository.deleteItem(item)
-                        }
-                    }
-                    
-                    self.textCaptureService.replaceCapturedTextWithAnswer("")
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.simulatePaste()
-                        self.clippyController.setState(.done, message: "Image pasted! 🖼️")
-                    }
-                } else {
-                    self.clippyController.setState(.idle, message: "That's not an image 🤔")
-                }
-            } else if let answer = answer?.trimmingCharacters(in: .whitespacesAndNewlines), !answer.isEmpty {
+            if let answer = answer?.trimmingCharacters(in: .whitespacesAndNewlines), !answer.isEmpty {
                 // Handle based on input mode
                 if self.activeInputMode == .textCapture {
                     // For text capture: replace captured text with answer
@@ -639,7 +542,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var apiKey: String
     @Binding var elevenLabsKey: String
-    @Binding var selectedService: AIServiceType
     
     @State private var tempGrokKey: String = ""
     @State private var tempElevenLabsKey: String = ""

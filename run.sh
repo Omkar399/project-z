@@ -12,6 +12,16 @@ for arg in "$@"; do
     fi
 done
 
+# Load environment variables from local files if present
+for env_file in .env .env.local; do
+    if [ -f "$env_file" ]; then
+        # export all variables defined in the file
+        set -a
+        source "$env_file"
+        set +a
+    fi
+done
+
 # Kill existing processes
 killall -9 ProjectZ 2>/dev/null
 pkill -f "mem0_service/main.py" 2>/dev/null

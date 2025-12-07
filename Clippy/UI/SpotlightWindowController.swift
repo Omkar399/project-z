@@ -16,11 +16,13 @@ class SpotlightWindowController: NSWindowController {
     private var panel: KeyablePanel!
     private var hostingView: NSHostingView<AnyView>!
     private var container: AppDependencyContainer
+    private var currentHeight: CGFloat = 120 // Default height
     
     init(container: AppDependencyContainer) {
         self.container = container
         super.init(window: nil)
         setupPanel()
+        setupObservers()
     }
     
     required init?(coder: NSCoder) {
@@ -30,7 +32,7 @@ class SpotlightWindowController: NSWindowController {
     private func setupPanel() {
         // Create a keyable panel that accepts keyboard input WITHOUT activating app
         panel = KeyablePanel(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: currentHeight),
             styleMask: [.borderless, .fullSizeContentView, .resizable, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -109,6 +111,48 @@ class SpotlightWindowController: NSWindowController {
         self.window = panel
     }
     
+    private func setupObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleHeightChange(_:)),
+            name: NSNotification.Name("SpotlightHeightChanged"),
+            object: nil
+        )
+    }
+    
+    @objc private func handleHeightChange(_ notification: Notification) {
+        guard let height = notification.userInfo?["height"] as? CGFloat else { return }
+        
+        // Only update if height changed significantly
+        guard abs(height - currentHeight) > 1 else { return }
+        
+        // Ensure within screen bounds
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let maxHeight = screen.visibleFrame.height * 0.8
+        let targetHeight = min(height, maxHeight)
+        
+        let oldFrame = panel.frame
+        // Calculate new origin to keep top anchored (or centered, depending on preference)
+        // Here we keep the top anchored so it expands downwards like Spotlight
+        let heightDiff = targetHeight - oldFrame.height
+        let newOriginY = oldFrame.minY - heightDiff
+        
+        let newFrame = NSRect(
+            x: oldFrame.minX,
+            y: newOriginY,
+            width: oldFrame.width,
+            height: targetHeight
+        )
+        
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.3
+            context.timingFunction = CAMediaTimingFunction(name: .default)
+            panel.animator().setFrame(newFrame, display: true)
+        }
+        
+        currentHeight = targetHeight
+    }
+    
     // MARK: - Public Methods
     
     func toggle() {
@@ -177,7 +221,22 @@ class SpotlightWindowController: NSWindowController {
             panel.animator().alphaValue = 0.0
         }, completionHandler: { [weak self] in
             self?.panel.orderOut(nil)
+            // Reset height on hide
+            self?.resetSize()
         })
     }
+    
+    private func resetSize() {
+        // Reset to default height for next opening
+        let defaultHeight: CGFloat = 120
+        let currentFrame = panel.frame
+        let newFrame = NSRect(
+            x: currentFrame.minX,
+            y: currentFrame.maxY - defaultHeight, // Keep top position
+            width: currentFrame.width,
+            height: defaultHeight
+        )
+        panel.setFrame(newFrame, display: true)
+        currentHeight = defaultHeight
+    }
 }
-
