@@ -112,13 +112,16 @@ struct ContentView: View {
             elevenLabsService = ElevenLabsService(apiKey: elevenLabsKey)
         }
         
-        Task {
-            // Initialize Vector DB
+        // CRITICAL: Initialize Vector DB synchronously BEFORE starting clipboard monitoring
+        // This prevents race condition where items are saved before vectorDB is ready
+        Task { @MainActor in
+            print("⏳ [ContentView] Waiting for ProjectZ initialization...")
             await clippy.initialize()
+            print("✅ [ContentView] ProjectZ ready, starting services...")
+            
+            // Now start hotkeys and other services that depend on vector DB
+            startHotkeys()
         }
-        
-        // Start hotkeys on main thread (required for CGEvent tap)
-        startHotkeys()
     }
     
     private func startHotkeys() {

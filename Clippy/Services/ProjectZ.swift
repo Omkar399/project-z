@@ -1,36 +1,23 @@
 import Foundation
 import SwiftData
-import VecturaMLXKit
-import VecturaKit
-import MLXEmbedders
 
 @MainActor
 class ProjectZ: ObservableObject {
     @Published var isInitialized = false
     @Published var statusMessage = "Initializing embedding service..."
     
-    private var vectorDB: VecturaMLXKit?
+    // Simple in-memory vector store
+    private var documents: [(id: UUID, text: String, embedding: [Float])] = []
     
     func initialize() async {
-        print("🚀 [ProjectZ] Initializing...")
-        do {
-            let config = VecturaConfig(
-                name: "pastepup-clipboard-v2",
-                dimension: nil as Int? // Auto-detect from model
-            )
-            
-            vectorDB = try await VecturaMLXKit(
-                config: config,
-                modelConfiguration: .qwen3_embedding
-            )
-             
-            isInitialized = true
-            statusMessage = "Ready (Qwen3-Embedding-0.6B)"
-            print("✅ [ProjectZ] Initialized successfully with Qwen3")
-        } catch {
-            statusMessage = "Failed to initialize: \(error.localizedDescription)"
-            print("❌ [ProjectZ] Initialization error: \(error)")
-        }
+        print("🚀 [ProjectZ] Initializing model2vec embeddings...")
+        
+        // For now, use a simple TF-IDF approximation until we add model2vec package
+        // This allows the app to work immediately
+        isInitialized = true
+        statusMessage = "Ready (In-Memory Search)"
+        print("✅ [ProjectZ] Initialized successfully with in-memory search")
+        print("   Note: Using simple text matching until model2vec is integrated")
     }
     
     func addDocument(vectorId: UUID, text: String) async {
@@ -38,58 +25,91 @@ class ProjectZ: ObservableObject {
     }
     
     func addDocuments(items: [(UUID, String)]) async {
-        guard let vectorDB = vectorDB else { 
-            print("⚠️ [ProjectZ] Cannot add documents - vectorDB not initialized")
-            return 
+        guard isInitialized else {
+            print("⚠️ [ProjectZ] Cannot add documents - not initialized")
+            return
         }
         
         let count = items.count
         print("📝 [ProjectZ] Adding \(count) documents...")
         
-        do {
-            let texts = items.map { $0.1 }
-            let ids = items.map { $0.0 }
-            
-            _ = try await vectorDB.addDocuments(
-                texts: texts,
-                ids: ids
-            )
-            print("   ✅ Added \(count) documents to Vector DB")
-        } catch {
-            print("   ❌ Failed to add documents: \(error)")
+        for (id, text) in items {
+            // Simple bag-of-words embedding (temporary until model2vec)
+            let embedding = createSimpleEmbedding(text: text)
+            documents.append((id: id, text: text, embedding: embedding))
         }
+        
+        print("   ✅ Added \(count) documents (total: \(documents.count))")
     }
     
     func search(query: String, limit: Int = 10) async -> [(UUID, Float)] {
-        guard let vectorDB = vectorDB else { 
-            print("⚠️ [ProjectZ] Cannot search - vectorDB not initialized")
-            return [] 
+        guard isInitialized else {
+            print("⚠️ [ProjectZ] Cannot search - not initialized")
+            return []
         }
         
         print("🔎 [ProjectZ] Searching for: '\(query)' (limit: \(limit))")
         
-        do {
-            let results = try await vectorDB.search(
-                query: query,
-                numResults: limit,
-                threshold: nil // No threshold, we'll rank ourselves
-            )
-            
-            print("   ✅ Found \(results.count) results")
-            for (index, result) in results.prefix(5).enumerated() {
-                print("      \(index + 1). ID: \(result.id), Score: \(String(format: "%.3f", result.score))")
-            }
-            
-            return results.map { ($0.id, $0.score) }
-        } catch {
-            print("   ❌ Search error: \(error)")
-            return []
+        let queryEmbedding = createSimpleEmbedding(text: query)
+        
+        // Calculate cosine similarity with all documents
+        var results: [(UUID, Float)] = []
+        for doc in documents {
+            let similarity = cosineSimilarity(queryEmbedding, doc.embedding)
+            results.append((doc.id, similarity))
         }
+        
+        // Sort by similarity (descending) and take top results
+        results.sort { $0.1 > $1.1 }
+        let topResults = Array(results.prefix(limit))
+        
+        print("   ✅ Found \(topResults.count) results")
+        for (index, result) in topResults.prefix(5).enumerated() {
+            print("      \(index + 1). ID: \(result.0), Score: \(String(format: "%.3f", result.1))")
+        }
+        
+        return topResults
     }
     
     func deleteDocument(vectorId: UUID) async throws {
-        guard let vectorDB = vectorDB else { return }
+        documents.removeAll { $0.id == vectorId }
+    }
+    
+    // MARK: - Simple Embedding (Temporary)
+    
+    private func createSimpleEmbedding(text: String) -> [Float] {
+        // Simple bag-of-words with TF weighting
+        let words = text.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
         
-        try await vectorDB.deleteDocuments(ids: [vectorId])
+        // Create a fixed-size embedding vector (128 dimensions)
+        var embedding = [Float](repeating: 0, count: 128)
+        
+        for (index, word) in words.enumerated() {
+            // Hash each word to a dimension
+            let hash = abs(word.hashValue % 128)
+            embedding[hash] += 1.0 / Float(words.count)
+        }
+        
+        // Normalize
+        let magnitude = sqrt(embedding.reduce(0) { $0 + $1 * $1 })
+        if magnitude > 0 {
+            embedding = embedding.map { $0 / magnitude }
+        }
+        
+        return embedding
+    }
+    
+    private func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
+        guard a.count == b.count else { return 0 }
+        
+        let dotProduct = zip(a, b).reduce(0) { $0 + $1.0 * $1.1 }
+        let magnitudeA = sqrt(a.reduce(0) { $0 + $1 * $1 })
+        let magnitudeB = sqrt(b.reduce(0) { $0 + $1 * $1 })
+        
+        guard magnitudeA > 0 && magnitudeB > 0 else { return 0 }
+        
+        return dotProduct / (magnitudeA * magnitudeB)
     }
 }

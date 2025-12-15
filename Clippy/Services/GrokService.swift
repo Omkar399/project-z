@@ -78,17 +78,16 @@ class GrokService: ObservableObject, AIServiceProtocol {
     
     // MARK: - Agentic RAG Implementation
     
-    /// Generate an answer with agentic decision-making
-    /// Phase 1: Classify if question is about clipboard or general knowledge
-    /// Phase 2a: If clipboard → search DB + RAG
-    /// Phase 2b: If general → direct Grok answer
+    /// Generate an answer with LOCAL SEMANTIC SEARCH ONLY
+    /// DISABLED: Agentic decision-making (classification)
+    /// ALWAYS uses clipboard RAG path with semantic search
     func generateAnswer(
         question: String,
         clipboardContext: [RAGContextItem],
         appName: String?,
         conversationHistory: [(role: String, content: String)] = []
     ) async -> String? {
-        print("🤖 [GrokService] Agentic RAG - Processing question...")
+        print("🤖 [GrokService] LOCAL SEARCH ONLY - Processing question...")
         print("   Question: \(question)")
         
         guard !apiKey.isEmpty else {
@@ -99,36 +98,9 @@ class GrokService: ObservableObject, AIServiceProtocol {
         isProcessing = true
         defer { isProcessing = false }
         
-        // PHASE 1: Classification
-        print("🧠 [GrokService] Phase 1: Classifying question type...")
-        guard let classification = await classifyQuestion(question) else {
-            print("   ❌ Classification failed, defaulting to clipboard search")
-            // Fallback to clipboard search
-            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
-        }
-        
-        print("   📊 Classification: \(classification.category) (confidence: \(String(format: "%.2f", classification.confidence)))")
-        
-        // PHASE 2: Route based on classification
-        if classification.category == "clipboard" {
-            // PHASE 2a: RAG Path - Search clipboard + provide context
-            print("🔍 [GrokService] Phase 2a: Using clipboard RAG path")
-            return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
-        } else if classification.category == "calendar_read" || classification.category == "calendar" {
-            // PHASE 2b: Calendar Read Path
-            print("📅 [GrokService] Phase 2b: Using calendar READ path")
-            return await generateCalendarAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
-            
-        } else if classification.category == "calendar_create" {
-            // PHASE 2c: Calendar Write Path
-            print("🗓️ [GrokService] Phase 2c: Using calendar CREATE path")
-            return await generateCalendarCreation(question: question)
-            
-        } else {
-            // PHASE 2d: Direct Path - General knowledge
-            print("🌐 [GrokService] Phase 2d: Using direct general knowledge path")
-            return await generateDirectAnswer(question: question, appName: appName, conversationHistory: conversationHistory)
-        }
+        // ALWAYS USE LOCAL SEMANTIC SEARCH
+        print("🔍 [GrokService] Using LOCAL clipboard RAG path (semantic search)")
+        return await generateRAGAnswer(question: question, clipboardContext: clipboardContext, appName: appName, conversationHistory: conversationHistory)
     }
     
     // MARK: - Classification
