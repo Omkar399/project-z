@@ -71,31 +71,57 @@ class SlashCommandHandler {
                     return CommandResult(success: false, message: "Error: Handler not available", shouldClearInput: false)
                 }
                 
-                // Session memory
-                let sessionSummary = self.conversationManager?.getSessionSummary() ?? "No session"
-                let sessionCount = self.conversationManager?.getConversationCount() ?? 0
-                
                 // Fetch Mem0 memories asynchronously
                 Task {
                     if let mem0Service = self.mem0Service {
                         let memories = await mem0Service.getAllMemories()
-                        let formattedMemories = mem0Service.formatMemoriesForDisplay(memories)
                         
                         await MainActor.run {
-                            let message = """
-                            🧠 **Memory Status**
-                            
-                            **Session Memory:** \(sessionCount) turns
-                            Status: \(sessionSummary)
-                            
-                            **Long-term Memory (Mem0):** \(memories.count) facts
-                            \(memories.isEmpty ? "No long-term memories yet." : "\n\(formattedMemories)")
-                            
-                            Tip: Use /obliviate to clear session only
-                            """
-                            
-                            // This is a workaround since we can't return async from Command action
-                            print("💬 Memories: \(message)")
+                            // Format memories as JSON cards
+                            if memories.isEmpty {
+                                // Show a single card indicating no memories
+                                let noMemoriesJSON = """
+                                [{
+                                    "title": "No Memories Yet",
+                                    "time": "Long-term",
+                                    "summary": "Start having conversations with ProjectZ to build long-term memories. Your preferences, important information, and context will be remembered across sessions.",
+                                    "points": ["💡 Tip: Use /obliviate to clear session memory only", "🧠 Long-term memories persist across sessions"]
+                                }]
+                                """
+                                self.outputPublisher.send(noMemoriesJSON)
+                            } else {
+                                // Format each memory as a Briefing card
+                                var briefings: [[String: Any]] = []
+                                for (index, memory) in memories.enumerated() {
+                                    var briefing: [String: Any] = [
+                                        "title": "Memory \(index + 1)",
+                                        "time": "Long-term",
+                                        "summary": memory.memory,
+                                        "points": []
+                                    ]
+                                    
+                                    // Add score if available
+                                    if let score = memory.score {
+                                        briefing["time"] = "Relevance: \(String(format: "%.2f", score))"
+                                    }
+                                    
+                                    briefings.append(briefing)
+                                }
+                                
+                                // Convert to JSON
+                                if let jsonData = try? JSONSerialization.data(withJSONObject: briefings, options: .prettyPrinted),
+                                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                                    self.outputPublisher.send(jsonString)
+                                } else {
+                                    // Fallback to text if JSON serialization fails
+                                    let fallbackMessage = "🧠 Found \(memories.count) memories:\n\n" + mem0Service.formatMemoriesForDisplay(memories)
+                                    self.outputPublisher.send(fallbackMessage)
+                                }
+                            }
+                        }
+                    } else {
+                        await MainActor.run {
+                            self.outputPublisher.send("⚠️ Mem0 service not available. Please check if the service is running.")
                         }
                     }
                 }
@@ -103,7 +129,7 @@ class SlashCommandHandler {
                 return CommandResult(
                     success: true,
                     message: "🔍 Fetching memories...",
-                    shouldClearInput: false
+                    shouldClearInput: true
                 )
             },
             

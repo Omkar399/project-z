@@ -262,15 +262,17 @@ struct SpotlightView: View {
                                     .foregroundStyle(.secondary)
                                     .lineLimit(nil) // Allow full summary
                                 
-                                Divider()
-                                
-                                ForEach(briefing.points, id: \.self) { point in
-                                    HStack(alignment: .top, spacing: 6) {
-                                        Text("•").foregroundStyle(.tertiary)
-                                        Text(point)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .fixedSize(horizontal: false, vertical: true)
+                                if !briefing.points.isEmpty {
+                                    Divider()
+                                    
+                                    ForEach(briefing.points, id: \.self) { point in
+                                        HStack(alignment: .top, spacing: 6) {
+                                            Text("•").foregroundStyle(.tertiary)
+                                            Text(point)
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
                                     }
                                 }
                             }
@@ -282,48 +284,39 @@ struct SpotlightView: View {
                             .shadow(color: .black.opacity(0.1), radius: 5, y: 2)
                         }
                     }
-                    .padding(.horizontal, 4) // Minimal horizontal padding
-                    .padding(.bottom, 24)
-                    .background(GeometryReader { geometry in
-                        Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
-                    })
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 8)
                 }
+                .frame(maxHeight: 400) // Constrain max height for better control
+                .padding(.top, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             
             // MARK: - Legacy Text Response
             if !response.isEmpty && briefings.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Measuring content size with background GeometryReader if needed, 
-                    // or just letting ScrollView expand naturally within limits.
-                    // For dynamic resizing, we notify the controller of the content height.
-                    
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
-                            // Header
-                            HStack {
-                                Image(systemName: "text.bubble.fill")
-                                    .foregroundStyle(gradient)
-                                Text("Answer")
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.bottom, 4)
-                            
-                            // Content
-                            Text(response)
-                                .font(.system(size: 16, design: .rounded))
-                                .foregroundColor(.primary)
-                                .lineSpacing(6)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        // Header
+                        HStack {
+                            Image(systemName: "text.bubble.fill")
+                                .foregroundStyle(gradient)
+                            Text("Answer")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
                         }
-                        .padding(20)
-                        .background(GeometryReader { geometry in
-                            Color.clear.preference(key: ViewHeightKey.self, value: geometry.size.height)
-                        })
+                        .padding(.bottom, 4)
+                        
+                        // Content
+                        Text(response)
+                            .font(.system(size: 16, design: .rounded))
+                            .foregroundColor(.primary)
+                            .lineSpacing(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
                     }
+                    .padding(20)
                 }
+                .frame(maxHeight: 500) // Constrain max height
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .fill(.ultraThinMaterial)
@@ -436,7 +429,36 @@ struct SpotlightView: View {
                     
                     // Ensure input is cleared
                     query = ""
+                    
+                    // Trigger height update
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        self.updateWindowHeight(contentHeight: 0)
+                    }
                 }
+            }
+        }
+        // Update window height when response changes
+        .onChange(of: response) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                updateWindowHeight(contentHeight: 0)
+            }
+        }
+        // Update window height when briefings change
+        .onChange(of: briefings.count) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                updateWindowHeight(contentHeight: 0)
+            }
+        }
+        // Update window height when command suggestions change
+        .onChange(of: showCommandSuggestions) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                updateWindowHeight(contentHeight: 0)
+            }
+        }
+        // Update window height when guardian mode changes
+        .onChange(of: isNudgeMode) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                updateWindowHeight(contentHeight: 0)
             }
         }
     }
@@ -444,15 +466,39 @@ struct SpotlightView: View {
     // MARK: - Actions
     
     private func updateWindowHeight(contentHeight: CGFloat) {
-        // Base height (input + padding) roughly calculated or fixed minimum
-        let baseHeight: CGFloat = 120 // Approximation of input area + padding
-        let totalHeight = baseHeight + contentHeight + 40 // + extra padding
+        // Calculate proper base height accounting for all UI elements
+        let inputAreaHeight: CGFloat = 64 // Input field + padding
+        let topBottomPadding: CGFloat = 48 // VStack padding (24 top + 24 bottom)
+        let responseTopPadding: CGFloat = 16 // Padding between input and response
+        let commandSuggestionsHeight: CGFloat = showCommandSuggestions ? 150 : 0
+        let guardianHeight: CGFloat = isNudgeMode ? 200 : 0
         
-        // Notify controller via NotificationCenter for decoupling
+        // Calculate content height
+        var calculatedContentHeight: CGFloat = 0
+        if !briefings.isEmpty {
+            // For briefings, estimate based on number of cards
+            let estimatedCardHeight: CGFloat = 120 // Average card height
+            let cardCount = CGFloat(briefings.count)
+            let estimatedHeight = min(cardCount * estimatedCardHeight + 32, 400) // Cap at max height
+            calculatedContentHeight = estimatedHeight
+        } else if !response.isEmpty {
+            // For text responses, estimate based on content
+            let lines = response.split(separator: "\n").count
+            let estimatedHeight = min(CGFloat(lines * 24 + 100), 500) // Cap at max height
+            calculatedContentHeight = estimatedHeight
+        }
+        
+        let totalHeight = inputAreaHeight + topBottomPadding + responseTopPadding + 
+                         commandSuggestionsHeight + guardianHeight + calculatedContentHeight
+        
+        // Ensure minimum height and cap maximum
+        let finalHeight = max(120, min(totalHeight, 700))
+        
+        // Notify controller via NotificationCenter
         NotificationCenter.default.post(
             name: NSNotification.Name("SpotlightHeightChanged"),
             object: nil,
-            userInfo: ["height": totalHeight]
+            userInfo: ["height": finalHeight]
         )
     }
     
