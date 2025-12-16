@@ -69,7 +69,7 @@ fi
 echo "🔨 Building ProjectZ..."
 
 # Build
-xcodebuild -project Clippy.xcodeproj \
+xcodebuild -project ProjectZ.xcodeproj \
            -scheme ProjectZ \
            -destination 'platform=macOS,arch=arm64' \
            -configuration Debug \
@@ -86,7 +86,7 @@ fi
 echo "✅ Build succeeded"
 
 # Get app path
-BUILD_SETTINGS=$(xcodebuild -project Clippy.xcodeproj -scheme ProjectZ -showBuildSettings -configuration Debug 2>/dev/null)
+BUILD_SETTINGS=$(xcodebuild -project ProjectZ.xcodeproj -scheme ProjectZ -showBuildSettings -configuration Debug 2>/dev/null)
 TARGET_BUILD_DIR=$(echo "$BUILD_SETTINGS" | grep " TARGET_BUILD_DIR =" | cut -d "=" -f 2 | xargs)
 FULL_PRODUCT_NAME=$(echo "$BUILD_SETTINGS" | grep " FULL_PRODUCT_NAME =" | cut -d "=" -f 2 | xargs)
 APP_PATH="$TARGET_BUILD_DIR/$FULL_PRODUCT_NAME"

@@ -20,8 +20,6 @@
 
 ![Clippy Demo](https://img.shields.io/badge/📎-Meet_Your_Smart_Assistant-4A90E2?style=for-the-badge)
 
-[![Built with TRAE IDE](https://img.shields.io/badge/🤖_Built_with-TRAE_IDE-FF6B6B?style=for-the-badge&logo=androidstudio&logoColor=white)](https://trae.ai)
-
 </div>
 
 ---
@@ -46,7 +44,9 @@
 
 ## Overview
 
-**Project Z** is your AI-powered personal assistant with true memory! It combines clipboard intelligence, calendar awareness, and guardian mode to become your Jarvis-like companion. With session memory and long-term learning via Mem0, Project Z remembers your preferences and provides contextual help across all your work.
+**# ProjectZ: Your AI-Powered Memory Companion
+
+ProjectZ is an intelligent macOS application that acts as your personal AI memory assistant. It captures, understands, and intelligently retrieves everything you copy, making your digital life more searchable and accessible.
 
 ### 🎬 Demo Video
 
@@ -75,8 +75,8 @@
 
 ### What Makes Clippy Special?
 
-🎯 **Context-Aware**: Understands what you're doing using macOS Accessibility APIs  
-🧠 **AI-Powered**: Uses Gemini 3 Pro for semantic tagging and intelligent search  
+- **In-Memory Vector Search**: Fast, lightweight semantic search using TF-IDF embeddings
+- **Grok AI**: Powered by xAI's Grok for intelligent responses
 🖼️ **Visual Intelligence**: Analyzes images with Apple Vision Framework  
 🔒 **Privacy-Focused**: Option to run completely local with Qwen3-4b  
 📎 **Floating Assistant**: Nostalgic Clippy character that follows your cursor  
@@ -176,7 +176,6 @@
 
 ### Development Tools
 
-[![TRAE IDE](https://img.shields.io/badge/TRAE_IDE-AI_Development-FF6B6B?style=for-the-badge&logo=androidstudio&logoColor=white)](https://trae.ai)
 [![Xcode](https://img.shields.io/badge/Xcode-16.0+-1575F9?style=for-the-badge&logo=xcode&logoColor=white)](https://developer.apple.com/xcode/)
 
 </div>
@@ -248,12 +247,12 @@
 
 ### Data Flow Pipeline
 
-1. **Monitor** → Track clipboard changes every 0.5 seconds
-2. **Capture** → Grab content + context (app, window, accessibility info)
-3. **Process** → AI generates semantic tags and embeddings
-4. **Store** → Save to SwiftData with vector index
-5. **Search** → Intelligent ranking by semantic similarity
-6. **Assist** → Floating Clippy provides contextual help
+1.  **Monitor** → Track clipboard changes every 0.5 seconds
+2.  **Capture** → Grab content + context (app, window, accessibility info)
+3.  **Process** → AI generates semantic tags and embeddings
+4.  **Store** → Save to SwiftData with vector index
+5.  **Search** → Intelligent ranking by semantic similarity
+6.  **Assist** → Floating Clippy provides contextual help
 
 ---
 
@@ -281,9 +280,9 @@ open Clippy.xcodeproj
 
 ### First Launch
 
-1. **Enable Accessibility** - System Settings → Privacy & Security → Accessibility
-2. **Add API Key** - Configure Gemini 3 Pro or install LM Studio for local AI
-3. **Start Copying** - Use `Option+X` to ask questions about your clipboard
+1.  **Enable Accessibility** - System Settings → Privacy & Security → Accessibility
+2.  **Add API Key** - Configure Gemini 3 Pro or install LM Studio for local AI
+3.  **Start Copying** - Use `Option+X` to ask questions about your clipboard
 
 ---
 
@@ -322,12 +321,12 @@ sequenceDiagram
 
 **Workflow:**
 
-1. Press `Option+X` to start capturing
-2. Type your question: "tracking number"
-3. Press `Option+X` again
-4. Clippy searches your history with AI
-5. Your typed text is **deleted**
-6. The answer appears **in place**!
+1.  Press `Option+X` to start capturing
+2.  Type your question: "tracking number"
+3.  Press `Option+X` again
+4.  Clippy searches your history with AI
+5.  Your typed text is **deleted**
+6.  The answer appears **in place**!
 
 **Example:**
 
@@ -353,9 +352,9 @@ Result: Your text replaced with answer automatically!
 
 ---
 
-## AI Services
-
-### 🌐 Gemini 3 Pro (Primary AI)
+### AI Services
+- **Grok (xAI)**: Primary AI model for text understanding and generation
+- **Mem0**: Long-term memory service for conversation context
 
 <div align="center">
 
@@ -393,10 +392,10 @@ Result: Your text replaced with answer automatically!
 - ❌ Lower accuracy on complex tasks
 
 **Setup:**
-1. Install [LM Studio](https://lmstudio.ai/)
-2. Download Qwen3-4b model
-3. Start local server (port 1234)
-4. Toggle "Local AI" in Clippy settings
+1.  Install [LM Studio](https://lmstudio.ai/)
+2.  Download Qwen3-4b model
+3.  Start local server (port 1234)
+4.  Toggle "Local AI" in Clippy settings
 
 ---
 
@@ -461,11 +460,10 @@ Result: Your text replaced with answer automatically!
 ### ⚡ Performance Optimizations
 
 - **Async/Await** - Non-blocking AI operations
-- **Smart Filtering** - Deduplication and noise reduction
-- **Incremental Updates** - Only new items processed
-- **Vector Caching** - Embeddings cached for fast search
-- **Lazy Loading** - Images loaded on demand
-- **Timer Optimization** - 0.5s polling with minimal overhead
+### Vector Database
+- **Simple In-Memory Search**: Lightweight TF-IDF bag-of-words embeddings
+- **128-dimensional vectors**: Fast cosine similarity search
+- **On-device processing**: 100% local, no external dependencies
 
 ---
 
@@ -598,12 +596,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Special thanks to:
 
 [![Apple](https://img.shields.io/badge/Apple-SwiftUI_&_Vision-000000?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com)
-[![Google](https://img.shields.io/badge/Google-Gemini_3_Pro-8E44AD?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
-[![VecturaKit](https://img.shields.io/badge/VecturaKit-Vector_Search-9C27B0?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VecturaMLX)
+[![xAI](https://img.shields.io/badge/xAI-Grok-8E44AD?style=for-the-badge&logo=xai&logoColor=white)](https://x.ai/)
 [![Microsoft](https://img.shields.io/badge/Microsoft-Original_Clippy-0078D4?style=for-the-badge&logo=microsoft&logoColor=white)](https://microsoft.com)
-[![TRAE IDE](https://img.shields.io/badge/TRAE_IDE-AI_Development-FF6B6B?style=for-the-badge&logo=androidstudio&logoColor=white)](https://trae.ai)
-
-### 🛠️ Built with TRAE IDE - The AI-Powered Development Environment
 
 </div>
 
@@ -635,14 +629,14 @@ See how AI-powered clipboard management transforms your workflow with natural la
 
 ---
 
-### Built with ❤️ and nostalgia using TRAE IDE
+### Built with ❤️ and nostalgia
 
-**Clippy is back, and he's smarter than ever!**
+**ProjectZ is back, and it's smarter than ever!**
 
 ![Clippy](https://img.shields.io/badge/📎-I_See_You're_Writing_Something-4A90E2?style=for-the-badge)
 ![AI](https://img.shields.io/badge/🤖-Would_You_Like_Help_With_That?-8E44AD?style=for-the-badge)
 
-**Powered by macOS | Gemini 3 Pro | Apple Vision | TRAE IDE**
+**Powered by macOS | xAI Grok | Apple Vision**
 
 [![⬆ Back to Top](#-clippy---ai-powered-clipboard-manager)](https://github.com/yhinai/clippy#readme)
 
