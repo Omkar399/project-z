@@ -18,9 +18,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		7C1ADD182E962B920014E10D /* Clippy */ = {
+		7C1ADD182E962B920014E10D /* ProjectZ */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Clippy;
+			path = ProjectZ;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -43,25 +43,25 @@
 		7C1ADD0D2E962B920014E10D = {
 			isa = PBXGroup;
 			children = (
-				7C1ADD182E962B920014E10D /* Clippy */,
+				7C1ADD182E962B920014E10D /* ProjectZ */,
 				7C1ADD172E962B920014E10D /* Products */,
 			);
 			sourceTree = "<group>";
 		};
 		7C1ADD172E962B920014E10D /* Products */ = {
-		isa = PBXGroup;
-		children = (
-			7C1ADD162E962B920014E10D /* ProjectZ.app */,
-		);
-		name = Products;
+			isa = PBXGroup;
+			children = (
+				7C1ADD162E962B920014E10D /* ProjectZ.app */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-	7C1ADD152E962B920014E10D /* ProjectZ */ = {
-		isa = PBXNativeTarget;
-		buildConfigurationList = 7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "ProjectZ" */;
+		7C1ADD152E962B920014E10D /* ProjectZ */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7C1ADD242E962B930014E10D /* Build configuration list for PBXNativeTarget "ProjectZ" */;
 			buildPhases = (
 				7C1ADD122E962B920014E10D /* Sources */,
 				7C1ADD132E962B920014E10D /* Frameworks */,
@@ -71,18 +71,18 @@
 			);
 			dependencies = (
 			);
-		fileSystemSynchronizedGroups = (
-			7C1ADD182E962B920014E10D /* Clippy */,
-		);
-		name = ProjectZ;
+			fileSystemSynchronizedGroups = (
+				7C1ADD182E962B920014E10D /* ProjectZ */,
+			);
+			name = ProjectZ;
 			packageProductDependencies = (
 				7CD28A0E2E9651760075A000 /* VecturaKit */,
 				7CD28A102E9651760075A000 /* VecturaMLXKit */,
 				7CMLX00022E9700000000001 /* MLXLLM */,
 				7CMLX00042E9700000000001 /* MLXLMCommon */,
 			);
-		productName = ProjectZ;
-		productReference = 7C1ADD162E962B920014E10D /* ProjectZ.app */;
+			productName = ProjectZ;
+			productReference = 7C1ADD162E962B920014E10D /* ProjectZ.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -100,7 +100,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 7C1ADD112E962B920014E10D /* Build configuration list for PBXProject "Clippy" */;
+			buildConfigurationList = 7C1ADD112E962B920014E10D /* Build configuration list for PBXProject "ProjectZ" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -116,10 +116,10 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7C1ADD172E962B920014E10D /* Products */;
 			projectDirPath = "";
-		projectRoot = "";
-		targets = (
-			7C1ADD152E962B920014E10D /* ProjectZ */,
-		);
+			projectRoot = "";
+			targets = (
+				7C1ADD152E962B920014E10D /* ProjectZ */,
+			);
 		};
 /* End PBXProject section */
 
@@ -271,7 +271,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Clippy/App/Clippy.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ProjectZ/App/Clippy.entitlements;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -279,7 +279,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Clippy/App/Info.plist;
+				INFOPLIST_FILE = ProjectZ/App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -299,7 +299,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = Clippy/App/Clippy.entitlements;
+				CODE_SIGN_ENTITLEMENTS = ProjectZ/App/Clippy.entitlements;
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -307,7 +307,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Clippy/App/Info.plist;
+				INFOPLIST_FILE = ProjectZ/App/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
